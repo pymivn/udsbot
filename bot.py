@@ -13,6 +13,8 @@ logger = logging.getLogger()
 
 OFFSET_FILE = "/tmp/uds_telegrambot_offset"
 BOT_TOKEN = os.environ["BOT_TOKEN"]
+# get temp token from https://openweathermap.org/
+API_TEMP = os.environ["WEATHER_TOKEN"]
 
 base = f"https://api.telegram.org/bot{BOT_TOKEN}/"
 
@@ -60,6 +62,18 @@ def fit_meanings_to_message(url, meanings):
     result.append(url)
     return "\n".join(result)
 
+def get_temp(cities):
+    results = []
+    for city in cities:
+        data_temp = requests.get("https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(city, API_TEMP)).json()
+        results.append({
+            'name': data_temp['name'],
+            'temp_now': round(data_temp['main']['temp'] - 273.15), 
+            'feels_like':round(data_temp['main']['feels_like'] - 273.15),
+            'humidity':data_temp['main']['humidity'],
+            'weather': data_temp['weather'][0]['description'],
+        })
+    return results
 
 def main():
     with requests.Session() as S:
@@ -162,6 +176,16 @@ def main():
                     )
                     logger.info("AQI: served city %s", city)
 
+                elif text.startswith("/tem"):
+                    cities = ['Hanoi', 'Ho Chi Minh']
+                    temp_cities = get_temp(cities)
+                    for temp in temp_cities:
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%"
+                        )
+                        logger.info("Temp: served city %s", city)
                 else:
                     logger.info("Unknown command: %s", text)
 
