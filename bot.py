@@ -62,18 +62,24 @@ def fit_meanings_to_message(url, meanings):
     result.append(url)
     return "\n".join(result)
 
+
 def get_temp(cities):
     results = []
     for city in cities:
-        data_temp = requests.get("https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(city, API_TEMP)).json()
-        results.append({
-            'name': data_temp['name'],
-            'temp_now': round(data_temp['main']['temp'] - 273.15),
-            'feels_like':round(data_temp['main']['feels_like'] - 273.15),
-            'humidity':data_temp['main']['humidity'],
-            'weather': data_temp['weather'][0]['description'],
-        })
+        data_temp = requests.get(
+            "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(city, API_TEMP)
+        ).json()
+        results.append(
+            {
+                "name": data_temp["name"],
+                "temp_now": round(data_temp["main"]["temp"] - 273.15),
+                "feels_like": round(data_temp["main"]["feels_like"] - 273.15),
+                "humidity": data_temp["main"]["humidity"],
+                "weather": data_temp["weather"][0]["description"],
+            }
+        )
     return results
+
 
 def main():
     with requests.Session() as S:
@@ -118,8 +124,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"UrbanDictionary result for `{keyword}`\n"
-                            + msg,
+                            text=f"UrbanDictionary result for `{keyword}`\n" + msg,
                         )
                         logger.info("UDS: served keyword %s", keyword)
 
@@ -140,8 +145,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
-                            + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
                         )
                         logger.info("UDS: served cam keyword %s", keyword)
 
@@ -162,8 +166,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
-                            + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
                         )
                         logger.info("UDS: served camfr keyword %s", keyword)
 
@@ -186,15 +189,15 @@ def main():
                     logger.info("AQI: served city %s", city)
 
                 elif text.startswith("/tem"):
-                    cities = ['Hanoi', 'Ho Chi Minh']
+                    cities = ["Hanoi", "Ho Chi Minh"]
                     temp_cities = get_temp(cities)
                     for temp in temp_cities:
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%"
+                            text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
                         )
-                        logger.info("Temp: served city %s", temp['name'])
+                        logger.info("Temp: served city %s", temp["name"])
                 else:
                     logger.info("Unknown command: %s", text)
 
