@@ -177,15 +177,22 @@ def main():
                     logger.info("AQI: served city %s", city)
 
                 elif text.startswith("/tem"):
-                    cities = ['Hanoi', 'Ho Chi Minh']
-                    temp_cities = get_temp(cities)
-                    for temp in temp_cities:
+                    if not os.environ["WEATHER_TOKEN"]:
                         send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%"
-                        )
-                        logger.info("Temp: served city %s", city)
+                                session=S,
+                                chat_id=chat_id,
+                                text=f"To get weather data, you must add api key."
+                            )
+                    else:
+                        cities = ['Hanoi', 'Ho Chi Minh']
+                        temp_cities = get_temp(cities)
+                        for temp in temp_cities:
+                            send_message(
+                                session=S,
+                                chat_id=chat_id,
+                                text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%"
+                            )
+                            logger.info("Temp: served city %s", city)
                 else:
                     logger.info("Unknown command: %s", text)
 
