@@ -192,7 +192,7 @@ def main():
                                 chat_id=chat_id,
                                 text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%"
                             )
-                            logger.info("Temp: served city %s", city)
+                            logger.info("Temp: served city %s", temp['name'])
                 else:
                     logger.info("Unknown command: %s", text)
 
