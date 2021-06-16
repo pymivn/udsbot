@@ -13,3 +13,6 @@ Normal users should use bot frameworks such as Errbot, ...
 
 Get bot token: https://core.telegram.org/bots#6-botfather
 Set `BOT_TOKEN` env then run bot.py.
+
+To get data weather and temperature, get free api in https://openweathermap.org/api
+then set `WEATHER_TOKEN` env and run bot.py.
