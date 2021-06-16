@@ -68,7 +68,7 @@ def get_temp(cities):
         data_temp = requests.get("https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(city, API_TEMP)).json()
         results.append({
             'name': data_temp['name'],
-            'temp_now': round(data_temp['main']['temp'] - 273.15), 
+            'temp_now': round(data_temp['main']['temp'] - 273.15),
             'feels_like':round(data_temp['main']['feels_like'] - 273.15),
             'humidity':data_temp['main']['humidity'],
             'weather': data_temp['weather'][0]['description'],
@@ -86,11 +86,20 @@ def main():
 
         resp = S.get(base + "getUpdates", json=params, timeout=20)
         d = resp.json()
-        rs = d["result"]
+
+        try:
+            rs = d["result"]
+        except KeyError:
+            print(d)
+            exit("Looks like a bad token")
+
         update_id = None
         for r in rs:
             update_id = r["update_id"]
-            message = r["message"]
+            try:
+                message = r["message"]
+            except KeyError:
+                continue
             if "text" in message:
                 chat_id = r["message"]["chat"]["id"]
                 text = r["message"]["text"].strip()
@@ -185,7 +194,7 @@ def main():
                             chat_id=chat_id,
                             text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%"
                         )
-                        logger.info("Temp: served city %s", city)
+                        logger.info("Temp: served city %s", temp['name'])
                 else:
                     logger.info("Unknown command: %s", text)
 
