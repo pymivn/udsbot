@@ -176,7 +176,7 @@ def main():
                     )
                     logger.info("AQI: served city %s", city)
 
-                elif text.startswith("/temp"):
+                elif text.startswith("/tem"):
                     cities = ['Hanoi', 'Ho Chi Minh']
                     temp_cities = get_temp(cities)
                     for temp in temp_cities:
