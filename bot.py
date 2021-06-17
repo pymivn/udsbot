@@ -67,9 +67,7 @@ def get_temp(cities):
     results = []
     for city in cities:
         data_temp = requests.get(
-            "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(
-                city, API_TEMP
-            )
+            "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(city, API_TEMP)
         ).json()
         results.append(
             {
@@ -117,8 +115,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"UrbanDictionary result for `{keyword}`\n"
-                            + msg,
+                            text=f"UrbanDictionary result for `{keyword}`\n" + msg,
                         )
                         logger.info("UDS: served keyword %s", keyword)
 
@@ -139,8 +136,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
-                            + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
                         )
                         logger.info("UDS: served cam keyword %s", keyword)
 
@@ -161,8 +157,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
-                            + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
                         )
                         logger.info("UDS: served camfr keyword %s", keyword)
 
@@ -189,7 +184,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one."
+                            text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
                         )
                     else:
                         cities = ["Hanoi", "Ho Chi Minh"]
@@ -202,11 +197,11 @@ def main():
                             )
                             logger.info("Temp: served city %s", temp["name"])
                 elif text.startswith("/hi"):
-                    if not API_TEMP:               
+                    if not API_TEMP:
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one."
+                            text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
                         )
                     else:
                         cities = ["Hanoi", "Ho Chi Minh"]
@@ -218,7 +213,6 @@ def main():
                                 text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
                             )
                             logger.info("Temp: served city %s", temp["name"])
-                        
                         city = "hn&hcm"
                         location, value, utime = get_aqi_hanoi()
                         send_message(
