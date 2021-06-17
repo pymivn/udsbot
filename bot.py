@@ -62,18 +62,24 @@ def fit_meanings_to_message(url, meanings):
     result.append(url)
     return "\n".join(result)
 
+
 def get_temp(cities):
     results = []
     for city in cities:
-        data_temp = requests.get("https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(city, API_TEMP)).json()
-        results.append({
-            'name': data_temp['name'],
-            'temp_now': round(data_temp['main']['temp'] - 273.15), 
-            'feels_like':round(data_temp['main']['feels_like'] - 273.15),
-            'humidity':data_temp['main']['humidity'],
-            'weather': data_temp['weather'][0]['description'],
-        })
+        data_temp = requests.get(
+            "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(city, API_TEMP)
+        ).json()
+        results.append(
+            {
+                "name": data_temp["name"],
+                "temp_now": round(data_temp["main"]["temp"] - 273.15),
+                "feels_like": round(data_temp["main"]["feels_like"] - 273.15),
+                "humidity": data_temp["main"]["humidity"],
+                "weather": data_temp["weather"][0]["description"],
+            }
+        )
     return results
+
 
 def main():
     with requests.Session() as S:
@@ -109,8 +115,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"UrbanDictionary result for `{keyword}`\n"
-                            + msg,
+                            text=f"UrbanDictionary result for `{keyword}`\n" + msg,
                         )
                         logger.info("UDS: served keyword %s", keyword)
 
@@ -131,8 +136,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
-                            + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
                         )
                         logger.info("UDS: served cam keyword %s", keyword)
 
@@ -153,8 +157,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
-                            + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
                         )
                         logger.info("UDS: served camfr keyword %s", keyword)
 
@@ -177,22 +180,55 @@ def main():
                     logger.info("AQI: served city %s", city)
 
                 elif text.startswith("/tem"):
-                    if not os.environ["WEATHER_TOKEN"]:
+                    if not API_TEMP:
                         send_message(
-                                session=S,
-                                chat_id=chat_id,
-                                text=f"To get weather data, you must add api key."
-                            )
+                            session=S,
+                            chat_id=chat_id,
+                            text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
+                        )
                     else:
-                        cities = ['Hanoi', 'Ho Chi Minh']
+                        cities = ["Hanoi", "Ho Chi Minh"]
                         temp_cities = get_temp(cities)
                         for temp in temp_cities:
                             send_message(
                                 session=S,
                                 chat_id=chat_id,
-                                text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%"
+                                text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
                             )
-                            logger.info("Temp: served city %s", city)
+                            logger.info("Temp: served city %s", temp["name"])
+                elif text.startswith("/hi"):
+                    if not API_TEMP:
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
+                        )
+                    else:
+                        cities = ["Hanoi", "Ho Chi Minh"]
+                        temp_cities = get_temp(cities)
+                        for temp in temp_cities:
+                            send_message(
+                                session=S,
+                                chat_id=chat_id,
+                                text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
+                            )
+                            logger.info("Temp: served city %s", temp["name"])
+                        city = "hn&hcm"
+                        location, value, utime = get_aqi_hanoi()
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text=f"PM2.5 {value} at {location} at {utime}",
+                        )
+
+                        location, value, utime = get_aqi_hcm()
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text=f"PM2.5 {value} at {location} at {utime}",
+                        )
+                        logger.info("AQI: served city %s", city)
+
                 else:
                     logger.info("Unknown command: %s", text)
 
