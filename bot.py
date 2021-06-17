@@ -189,6 +189,57 @@ def main():
                     logger.info("AQI: served city %s", city)
 
                 elif text.startswith("/tem"):
+
+                    if not API_TEMP:
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
+                        )
+                    else:
+                        cities = ["Hanoi", "Ho Chi Minh"]
+                        temp_cities = get_temp(cities)
+                        for temp in temp_cities:
+                            send_message(
+                                session=S,
+                                chat_id=chat_id,
+                                text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
+                            )
+                            logger.info("Temp: served city %s", temp["name"])
+                elif text.startswith("/hi"):
+                    if not API_TEMP:
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
+                        )
+                    else:
+                        cities = ["Hanoi", "Ho Chi Minh"]
+                        temp_cities = get_temp(cities)
+                        for temp in temp_cities:
+                            send_message(
+                                session=S,
+                                chat_id=chat_id,
+                                text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
+                            )
+                            logger.info("Temp: served city %s", temp["name"])
+                        city = "hn&hcm"
+                        location, value, utime = get_aqi_hanoi()
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text=f"PM2.5 {value} at {location} at {utime}",
+                        )
+
+                        location, value, utime = get_aqi_hcm()
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text=f"PM2.5 {value} at {location} at {utime}",
+                        )
+                        logger.info("AQI: served city %s", city)
+
+
                     cities = ["Hanoi", "Ho Chi Minh"]
                     temp_cities = get_temp(cities)
                     for temp in temp_cities:
@@ -198,6 +249,7 @@ def main():
                             text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
                         )
                         logger.info("Temp: served city %s", temp["name"])
+
                 else:
                     logger.info("Unknown command: %s", text)
 
