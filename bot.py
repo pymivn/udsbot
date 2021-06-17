@@ -92,11 +92,20 @@ def main():
 
         resp = S.get(base + "getUpdates", json=params, timeout=20)
         d = resp.json()
-        rs = d["result"]
+
+        try:
+            rs = d["result"]
+        except KeyError:
+            print(d)
+            exit("Looks like a bad token")
+
         update_id = None
         for r in rs:
             update_id = r["update_id"]
-            message = r["message"]
+            try:
+                message = r["message"]
+            except KeyError:
+                continue
             if "text" in message:
                 chat_id = r["message"]["chat"]["id"]
                 text = r["message"]["text"].strip()
@@ -180,6 +189,7 @@ def main():
                     logger.info("AQI: served city %s", city)
 
                 elif text.startswith("/tem"):
+
                     if not API_TEMP:
                         send_message(
                             session=S,
@@ -228,6 +238,17 @@ def main():
                             text=f"PM2.5 {value} at {location} at {utime}",
                         )
                         logger.info("AQI: served city %s", city)
+
+
+                    cities = ["Hanoi", "Ho Chi Minh"]
+                    temp_cities = get_temp(cities)
+                    for temp in temp_cities:
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
+                        )
+                        logger.info("Temp: served city %s", temp["name"])
 
                 else:
                     logger.info("Unknown command: %s", text)
