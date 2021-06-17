@@ -238,18 +238,6 @@ def main():
                             text=f"PM2.5 {value} at {location} at {utime}",
                         )
                         logger.info("AQI: served city %s", city)
-
-
-                    cities = ["Hanoi", "Ho Chi Minh"]
-                    temp_cities = get_temp(cities)
-                    for temp in temp_cities:
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
-                        )
-                        logger.info("Temp: served city %s", temp["name"])
-
                 else:
                     logger.info("Unknown command: %s", text)
 
