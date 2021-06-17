@@ -67,7 +67,9 @@ def get_temp(cities):
     results = []
     for city in cities:
         data_temp = requests.get(
-            "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(city, API_TEMP)
+            "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(
+                city, API_TEMP
+            )
         ).json()
         results.append(
             {
@@ -79,6 +81,12 @@ def get_temp(cities):
             }
         )
     return results
+
+
+def get_price_btc():
+    resp = requests.get("https://api.coindesk.com/v1/bpi/currentprice.json").json()
+    btc_price = "".join(resp["bpi"]["USD"]["rate"].split(".")[0].split(","))
+    return btc_price
 
 
 def main():
@@ -145,7 +153,8 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
+                            + msg,
                         )
                         logger.info("UDS: served cam keyword %s", keyword)
 
@@ -166,7 +175,8 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
+                            + msg,
                         )
                         logger.info("UDS: served camfr keyword %s", keyword)
 
@@ -238,6 +248,22 @@ def main():
                             text=f"PM2.5 {value} at {location} at {utime}",
                         )
                         logger.info("AQI: served city %s", city)
+
+                elif text.startswith("/btc"):
+                    price_btc = get_price_btc()
+                    if not price_btc:
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text="API is not working, check it in https://api.coindesk.com/v1/bpi/currentprice.json",
+                        )
+                    else:
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text=f"1 BTC = ${price_btc} now",
+                        )
+                        logger.info("Price BTC is %s", price_btc)
                 else:
                     logger.info("Unknown command: %s", text)
 
