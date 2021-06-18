@@ -44,13 +44,12 @@ def send_message(session, chat_id, text="hi"):
     msg = {
         "chat_id": chat_id,
         "text": text,
-        
     }
     session.post(base + "sendMessage", json=msg, timeout=10)
 
 
 def send_photo(session, chat_id, photo):
-    photo = open('/home/speedy/udsbot/chartimage.png', 'rb')
+    photo = open("/home/speedy/udsbot/chartimage.png", "rb")
     msg = {
         "chat_id": chat_id,
         "photo": photo,
@@ -60,8 +59,8 @@ def send_photo(session, chat_id, photo):
 
 def send_photo(chat_id, file_opened):
     method = "sendPhoto"
-    params = {'chat_id': chat_id}
-    files = {'photo': file_opened}
+    params = {"chat_id": chat_id}
+    files = {"photo": file_opened}
     resp = requests.post(base + method, params, files=files)
     return resp
 
@@ -106,18 +105,23 @@ def get_price_btc():
     btc_price = "".join(resp["bpi"]["USD"]["rate"].split(".")[0].split(","))
     return btc_price
 
+
 def get_chart():
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
 
-    data = requests.get("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1").json()
-    df = pd.DataFrame(data['prices'],
-                    columns=['Time', 'Price'],
-                    )
-    df = df.set_index(['Time'])
+    data = requests.get(
+        "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1"
+    ).json()
+    df = pd.DataFrame(
+        data["prices"],
+        columns=["Time", "Price"],
+    )
+    df = df.set_index(["Time"])
     df.plot().get_figure().savefig("chartimage")
     return "ok"
+
 
 def main():
     with requests.Session() as S:
@@ -293,7 +297,9 @@ def main():
                             chat_id=chat_id,
                             text=f"1 BTC = ${price_btc} now",
                         )
-                        send_photo(chat_id, open("/home/speedy/udsbot/chartimage.png", 'rb'))
+                        send_photo(
+                            chat_id, open("/home/speedy/udsbot/chartimage.png", "rb")
+                        )
                         logger.info("Price BTC is %s", price_btc)
 
                 else:
