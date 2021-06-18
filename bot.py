@@ -106,7 +106,7 @@ def get_price_btc():
     return btc_price
 
 
-def get_chart():
+def create_chart():
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -119,7 +119,7 @@ def get_chart():
         columns=["Time", "Price"],
     )
     df = df.set_index(["Time"])
-    df.plot().get_figure().savefig("chartimage")
+    df.plot().get_figure().savefig("chartimage.png")
     return "ok"
 
 
@@ -297,6 +297,7 @@ def main():
                             chat_id=chat_id,
                             text=f"1 BTC = ${price_btc} now",
                         )
+                        create_chart()
                         send_photo(
                             chat_id, open("/home/speedy/udsbot/chartimage.png", "rb")
                         )
