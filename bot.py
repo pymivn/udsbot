@@ -48,6 +48,14 @@ def send_message(session, chat_id, text="hi"):
     session.post(base + "sendMessage", json=msg, timeout=10)
 
 
+def send_photo(chat_id, file_opened):
+    method = "sendPhoto"
+    params = {"chat_id": chat_id}
+    files = {"photo": file_opened}
+    resp = requests.post(base + method, params, files=files)
+    return resp
+
+
 def fit_meanings_to_message(url, meanings):
     result = []
     for idx, meaning in enumerate(meanings):
@@ -83,10 +91,46 @@ def get_temp(cities):
     return results
 
 
-def get_price_btc():
-    resp = requests.get("https://api.coindesk.com/v1/bpi/currentprice.json").json()
-    btc_price = "".join(resp["bpi"]["USD"]["rate"].split(".")[0].split(","))
-    return btc_price
+def get_price_btc(coin="bitcoin"):
+    # only get btc_price
+    # resp = requests.get("https://api.coindesk.com/v1/bpi/currentprice.json").json()
+    # btc_price = "".join(resp["bpi"]["USD"]["rate"].split(".")[0].split(","))
+    # return btc_price
+    from pycoingecko import CoinGeckoAPI
+
+    cg = CoinGeckoAPI()
+    data = cg.get_price(
+        ids=coin,
+        vs_currencies="usd",
+        include_market_cap=True,
+        include_24hr_vol=True,
+        include_24hr_change=True,
+        include_last_updated_at=True,
+    )
+    return data
+
+
+def create_chart(coin="bitcoin"):
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from datetime import datetime
+
+    data = requests.get(
+        f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days=1"
+    ).json()
+    try:
+        df = pd.DataFrame(
+            data["prices"],
+            columns=["Time", "Price"],
+        )
+        df["Time"] = [
+            datetime.fromtimestamp(x / 1000).strftime("%H:%M:%S") for x in df["Time"]
+        ]
+        df = df.set_index(["Time"])
+        df.plot().get_figure().savefig("chartimage.png")
+    except KeyError:
+        return "error"
 
 
 def main():
@@ -250,20 +294,44 @@ def main():
                         logger.info("AQI: served city %s", city)
 
                 elif text.startswith("/btc"):
-                    price_btc = get_price_btc()
-                    if not price_btc:
+                    try:
+                        coin_code = text.split(" ")[1]
+                    except IndexError:
+                        coin_code = "bitcoin"
+                    data = [
+                        ("btc", "bitcoin"),
+                        ("eth", "ethereum"),
+                        ("usdt", "tether"),
+                        ("bnb", "binancecoin"),
+                        ("ada", "cardano"),
+                        ("doge", "dogecoin"),
+                        ("xrp", "xrp"),
+                        ("ltc", "litecoin"),
+                        ("link", "chainlink"),
+                        ("xlm", "stellar"),
+                    ]
+                    for symbol in data:
+                        if coin_code == symbol[0]:
+                            coin_code = symbol[1]
+                    prices_data = get_price_btc(coin_code)
+                    if prices_data != "error":
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text="API is not working, check it in https://api.coindesk.com/v1/bpi/currentprice.json",
+                            text=f"""{coin_code.upper()} ${prices_data[coin_code]['usd']} 
+Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B 
+24h {round(prices_data[coin_code]['usd_24h_change'],1)}% """,
                         )
+                        create_chart(coin_code)
+                        url = "/".join([os.getcwd(), "chartimage.png"])
+                        send_photo(chat_id, open(url, "rb"))
+                        logger.info("Get price of %s", coin_code)
                     else:
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"1 BTC = ${price_btc} now",
+                            text=f"Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
                         )
-                        logger.info("Price BTC is %s", price_btc)
                 else:
                     logger.info("Unknown command: %s", text)
 

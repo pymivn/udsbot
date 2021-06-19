@@ -1,2 +1,6 @@
 requests
 uds
+numpy
+pandas
+matplotlib
+pycoingecko
