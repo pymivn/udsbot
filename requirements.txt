@@ -3,3 +3,4 @@ uds
 numpy
 pandas
 matplotlib
+pycoingecko
