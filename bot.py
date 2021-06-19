@@ -111,9 +111,7 @@ def get_price_btc(coin="bitcoin"):
 
 
 def create_chart(coin="bitcoin"):
-    import numpy as np
     import pandas as pd
-    import matplotlib.pyplot as plt
     from datetime import datetime
 
     data = requests.get(
@@ -128,7 +126,7 @@ def create_chart(coin="bitcoin"):
             datetime.fromtimestamp(x / 1000).strftime("%H:%M:%S") for x in df["Time"]
         ]
         df = df.set_index(["Time"])
-        df.plot().get_figure().savefig("chartimage.png")
+        df.plot().get_figure().savefig("/tmp/chartimage.png")
     except KeyError:
         return "error"
 
@@ -318,19 +316,20 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"""{coin_code.upper()} ${prices_data[coin_code]['usd']} 
-Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B 
+                            text=f"""{coin_code.upper()} ${prices_data[coin_code]['usd']}
+Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
 24h {round(prices_data[coin_code]['usd_24h_change'],1)}% """,
                         )
                         create_chart(coin_code)
-                        url = "/".join([os.getcwd(), "chartimage.png"])
-                        send_photo(chat_id, open(url, "rb"))
+                        imgfile = "/tmp/chartimage.png"
+                        with open(imgfile, "rb") as f:
+                            send_photo(chat_id, f)
                         logger.info("Get price of %s", coin_code)
                     else:
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
+                            text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
                         )
                 else:
                     logger.info("Unknown command: %s", text)
