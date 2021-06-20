@@ -18,6 +18,8 @@ API_TEMP = os.environ["WEATHER_TOKEN"]
 
 base = f"https://api.telegram.org/bot{BOT_TOKEN}/"
 
+os.environ["TZ"] = "Asia/Ho_Chi_Minh"
+
 
 def get_aqi_hanoi():
     resp = requests.get(
@@ -293,7 +295,7 @@ def main():
 
                 elif text.startswith("/btc"):
                     try:
-                        coin_code = text.split(" ")[1]
+                        coin_code = text.split(" ")[1].lower()
                     except IndexError:
                         coin_code = "bitcoin"
                     data = [
@@ -312,7 +314,7 @@ def main():
                         if coin_code == symbol[0]:
                             coin_code = symbol[1]
                     prices_data = get_price_btc(coin_code)
-                    if prices_data != "error":
+                    try:
                         send_message(
                             session=S,
                             chat_id=chat_id,
@@ -325,7 +327,7 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                         with open(imgfile, "rb") as f:
                             send_photo(chat_id, f)
                         logger.info("Get price of %s", coin_code)
-                    else:
+                    except KeyError:
                         send_message(
                             session=S,
                             chat_id=chat_id,
