@@ -115,20 +115,52 @@ def get_price_btc(coin="bitcoin"):
 def create_chart(coin="bitcoin"):
     import pandas as pd
     from datetime import datetime
+    import plotly.graph_objects as go
+
+    def opents2price(row):
+        ts = row['Open_Timestamp']
+        rs = float(df[df['Timestamp'] == ts]['Price'].values)
+        return rs
+
+    def closets2price(row):
+        ts = row['Close_Timestamp']
+        rs = float(df[df['Timestamp'] == ts]['Price'].values)
+        return rs
 
     data = requests.get(
-        f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days=1"
+        f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days=60"
     ).json()
     try:
         df = pd.DataFrame(
             data["prices"],
-            columns=["Time", "Price"],
+            columns=["Timestamp", "Price"],
         )
-        df["Time"] = [
-            datetime.fromtimestamp(x / 1000).strftime("%H:%M:%S") for x in df["Time"]
-        ]
-        df = df.set_index(["Time"])
-        df.plot().get_figure().savefig("/tmp/chartimage.png")
+
+        df.index = pd.to_datetime(df['Timestamp'], unit='ms')
+
+        analyzed = pd.DataFrame()
+        analyzed['High'] = df.groupby(df.index.date).max('Price')['Price']
+        analyzed['Low'] = df.groupby(df.index.date).min('Price')['Price']
+        analyzed['Date'] = df.groupby(df.index.date).max('Price').index
+        analyzed['Open_Timestamp'] = df.groupby(df.index.date).min('Timestamp')['Timestamp']
+        analyzed['Close_Timestamp'] = df.groupby(df.index.date).max('Timestamp')['Timestamp']
+        analyzed['Open'] = analyzed.apply(opents2price, axis=1)
+        analyzed['Close'] = analyzed.apply(closets2price, axis=1)
+
+        fig = go.Figure(data=[go.Candlestick(x=analyzed['Date'],
+                open=analyzed['Open'],
+                high=analyzed['High'],
+                low=analyzed['Low'],
+                close=analyzed['Close'])])
+
+        fig.update_layout(plot_bgcolor="#333333",
+                        paper_bgcolor="#333333",
+                        font=dict(color="white"),
+                        xaxis={'showgrid':False},
+                        width=900, height=600)
+
+        fig.write_image("/tmp/chartimage.png")
+
     except KeyError:
         return "error"
 
