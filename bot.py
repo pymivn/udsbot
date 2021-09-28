@@ -358,7 +358,7 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
 24h {round(prices_data[coin_code]['usd_24h_change'],1)}% """,
                     )
 
-                elif text.startswith("/c "):
+                elif text == "/c" or text.startswith("/c "):
                     try:
                         code = text.split(" ")[1].lower()
                     except IndexError:
