@@ -128,42 +128,39 @@ def create_chart(coin="bitcoin"):
         return rs
 
     data = requests.get(
-        f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days=60"
+        f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days=60",
+        timeout=5
     ).json()
-    try:
-        df = pd.DataFrame(
-            data["prices"],
-            columns=["Timestamp", "Price"],
-        )
 
-        df.index = pd.to_datetime(df['Timestamp'], unit='ms')
+    df = pd.DataFrame(
+        data["prices"],
+        columns=["Timestamp", "Price"],
+    )
 
-        analyzed = pd.DataFrame()
-        analyzed['High'] = df.groupby(df.index.date).max('Price')['Price']
-        analyzed['Low'] = df.groupby(df.index.date).min('Price')['Price']
-        analyzed['Date'] = df.groupby(df.index.date).max('Price').index
-        analyzed['Open_Timestamp'] = df.groupby(df.index.date).min('Timestamp')['Timestamp']
-        analyzed['Close_Timestamp'] = df.groupby(df.index.date).max('Timestamp')['Timestamp']
-        analyzed['Open'] = analyzed.apply(opents2price, axis=1)
-        analyzed['Close'] = analyzed.apply(closets2price, axis=1)
+    df.index = pd.to_datetime(df['Timestamp'], unit='ms')
 
-        fig = go.Figure(data=[go.Candlestick(x=analyzed['Date'],
-                open=analyzed['Open'],
-                high=analyzed['High'],
-                low=analyzed['Low'],
-                close=analyzed['Close'])])
+    analyzed = pd.DataFrame()
+    analyzed['High'] = df.groupby(df.index.date).max('Price')['Price']
+    analyzed['Low'] = df.groupby(df.index.date).min('Price')['Price']
+    analyzed['Date'] = df.groupby(df.index.date).max('Price').index
+    analyzed['Open_Timestamp'] = df.groupby(df.index.date).min('Timestamp')['Timestamp']
+    analyzed['Close_Timestamp'] = df.groupby(df.index.date).max('Timestamp')['Timestamp']
+    analyzed['Open'] = analyzed.apply(opents2price, axis=1)
+    analyzed['Close'] = analyzed.apply(closets2price, axis=1)
 
-        fig.update_layout(plot_bgcolor="#333333",
-                        paper_bgcolor="#333333",
-                        font=dict(color="white"),
-                        xaxis={'showgrid':False},
-                        width=900, height=600)
+    fig = go.Figure(data=[go.Candlestick(x=analyzed['Date'],
+            open=analyzed['Open'],
+            high=analyzed['High'],
+            low=analyzed['Low'],
+            close=analyzed['Close'])])
 
-        fig.write_image("/tmp/chartimage.png")
+    fig.update_layout(plot_bgcolor="#333333",
+                    paper_bgcolor="#333333",
+                    font=dict(color="white"),
+                    xaxis={'showgrid':False},
+                    width=900, height=600)
 
-    except KeyError:
-        return "error"
-
+    fig.write_image("/tmp/chartimage.png")
 
 def main():
     with requests.Session() as S:
@@ -365,6 +362,8 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                             chat_id=chat_id,
                             text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
                         )
+                    except Exception as e:
+                        send_message(session=S, chat_id=chat_id, text=f"Error: {e}")
                 else:
                     logger.info("Unknown command: %s", text)
 
