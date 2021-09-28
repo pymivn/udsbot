@@ -339,7 +339,7 @@ def main():
                     try:
                         code = text.split(" ")[1].lower()
                     except IndexError:
-                        coin_code = "bitcoin"
+                        code = "btc"
 
                     try:
                         coin_code = _get_coin_name(code)
@@ -362,7 +362,7 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                     try:
                         code = text.split(" ")[1].lower()
                     except IndexError:
-                        coin_code = "bitcoin"
+                        code = "btc"
 
                     try:
                         coin_code = _get_coin_name(code)
