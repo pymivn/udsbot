@@ -20,6 +20,19 @@ base = f"https://api.telegram.org/bot{BOT_TOKEN}/"
 
 os.environ["TZ"] = "Asia/Ho_Chi_Minh"
 
+def _get_coin_name(code):
+    return dict([
+        ("btc", "bitcoin"),
+        ("eth", "ethereum"),
+        ("usdt", "tether"),
+        ("bnb", "binancecoin"),
+        ("ada", "cardano"),
+        ("doge", "dogecoin"),
+        ("xrp", "xrp"),
+        ("ltc", "litecoin"),
+        ("link", "chainlink"),
+        ("xlm", "stellar"),
+    ])[code]
 
 def get_aqi_hanoi():
     resp = requests.get(
@@ -129,7 +142,7 @@ def create_chart(coin="bitcoin"):
 
     data = requests.get(
         f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days=60",
-        timeout=5
+        timeout=7
     ).json()
 
     df = pd.DataFrame(
@@ -324,46 +337,50 @@ def main():
 
                 elif text.startswith("/btc"):
                     try:
-                        coin_code = text.split(" ")[1].lower()
+                        code = text.split(" ")[1].lower()
                     except IndexError:
                         coin_code = "bitcoin"
-                    data = [
-                        ("btc", "bitcoin"),
-                        ("eth", "ethereum"),
-                        ("usdt", "tether"),
-                        ("bnb", "binancecoin"),
-                        ("ada", "cardano"),
-                        ("doge", "dogecoin"),
-                        ("xrp", "xrp"),
-                        ("ltc", "litecoin"),
-                        ("link", "chainlink"),
-                        ("xlm", "stellar"),
-                    ]
-                    for symbol in data:
-                        if coin_code == symbol[0]:
-                            coin_code = symbol[1]
-                    prices_data = get_price_btc(coin_code)
+
                     try:
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text=f"""{coin_code.upper()} ${prices_data[coin_code]['usd']}
-Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
-24h {round(prices_data[coin_code]['usd_24h_change'],1)}% """,
-                        )
-                        create_chart(coin_code)
-                        imgfile = "/tmp/chartimage.png"
-                        with open(imgfile, "rb") as f:
-                            send_photo(chat_id, f)
-                        logger.info("Get price of %s", coin_code)
+                        coin_code = _get_coin_name(code)
                     except KeyError:
                         send_message(
                             session=S,
                             chat_id=chat_id,
                             text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
                         )
+                    prices_data = get_price_btc(coin_code)
+                    send_message(
+                        session=S,
+                        chat_id=chat_id,
+                        text=f"""{coin_code.upper()} ${prices_data[coin_code]['usd']}
+Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
+24h {round(prices_data[coin_code]['usd_24h_change'],1)}% """,
+                    )
+
+                elif text.startswith("/c "):
+                    try:
+                        code = text.split(" ")[1].lower()
+                    except IndexError:
+                        coin_code = "bitcoin"
+
+                    try:
+                        coin_code = _get_coin_name(code)
+                    except KeyError:
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
+                        )
+
+                    try:
+                        create_chart(coin_code)
+                        imgfile = "/tmp/chartimage.png"
+                        with open(imgfile, "rb") as f:
+                            send_photo(chat_id, f)
+                        logger.info("Get price of %s", coin_code)
                     except Exception as e:
-                        send_message(session=S, chat_id=chat_id, text=f"Error: {e}")
+                        send_message(session=S, chat_id=chat_id, text=f"Create chart failed with error: {e}, {type(e)}")
                 else:
                     logger.info("Unknown command: %s", text)
 
