@@ -21,38 +21,39 @@ base = f"https://api.telegram.org/bot{BOT_TOKEN}/"
 
 os.environ["TZ"] = "Asia/Ho_Chi_Minh"
 
+
 def aoc21(topn=10):
-    cookies = {
-      "session": AOC_SESSION
-    }
+    cookies = {"session": AOC_SESSION}
 
-    r = requests.get('https://adventofcode.com/2021/leaderboard/private/view/416592.json',
-                     cookies=cookies)
+    r = requests.get("https://adventofcode.com/2021/leaderboard/private/view/416592.json", cookies=cookies)
     d = r.json()
-    scoreboard = [(e['name'], e['local_score'],e['stars'])
-     for e in sorted(d["members"].values(), key=lambda i: i['local_score'], reverse=True) if e['stars'] > 0]
-
-    lines = [
-        f"{idx}. " + " ".join((str(p) for p in i))
-        for idx, i in enumerate(scoreboard[:topn])
+    scoreboard = [
+        (e["name"], e["local_score"], e["stars"])
+        for e in sorted(d["members"].values(), key=lambda i: i["local_score"], reverse=True)
+        if e["stars"] > 0
     ]
 
-    return ("\n".join(lines))
+    lines = [f"{idx}. " + " ".join((str(p) for p in i)) for idx, i in enumerate(scoreboard[:topn])]
+
+    return "\n".join(lines)
 
 
 def _get_coin_name(code):
-    return dict([
-        ("btc", "bitcoin"),
-        ("eth", "ethereum"),
-        ("usdt", "tether"),
-        ("bnb", "binancecoin"),
-        ("ada", "cardano"),
-        ("doge", "dogecoin"),
-        ("xrp", "xrp"),
-        ("ltc", "litecoin"),
-        ("link", "chainlink"),
-        ("xlm", "stellar"),
-    ])[code]
+    return dict(
+        [
+            ("btc", "bitcoin"),
+            ("eth", "ethereum"),
+            ("usdt", "tether"),
+            ("bnb", "binancecoin"),
+            ("ada", "cardano"),
+            ("doge", "dogecoin"),
+            ("xrp", "xrp"),
+            ("ltc", "litecoin"),
+            ("link", "chainlink"),
+            ("xlm", "stellar"),
+        ]
+    )[code]
+
 
 def get_aqi_hanoi():
     resp = requests.get(
@@ -110,9 +111,7 @@ def get_temp(cities):
     results = []
     for city in cities:
         data_temp = requests.get(
-            "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(
-                city, API_TEMP
-            )
+            "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(city, API_TEMP)
         ).json()
         results.append(
             {
@@ -151,18 +150,17 @@ def create_chart(coin="bitcoin"):
     import plotly.graph_objects as go
 
     def opents2price(row):
-        ts = row['Open_Timestamp']
-        rs = float(df[df['Timestamp'] == ts]['Price'].values)
+        ts = row["Open_Timestamp"]
+        rs = float(df[df["Timestamp"] == ts]["Price"].values)
         return rs
 
     def closets2price(row):
-        ts = row['Close_Timestamp']
-        rs = float(df[df['Timestamp'] == ts]['Price'].values)
+        ts = row["Close_Timestamp"]
+        rs = float(df[df["Timestamp"] == ts]["Price"].values)
         return rs
 
     data = requests.get(
-        f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days=60",
-        timeout=7
+        f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days=60", timeout=7
     ).json()
 
     df = pd.DataFrame(
@@ -170,30 +168,40 @@ def create_chart(coin="bitcoin"):
         columns=["Timestamp", "Price"],
     )
 
-    df.index = pd.to_datetime(df['Timestamp'], unit='ms')
+    df.index = pd.to_datetime(df["Timestamp"], unit="ms")
 
     analyzed = pd.DataFrame()
-    analyzed['High'] = df.groupby(df.index.date).max('Price')['Price']
-    analyzed['Low'] = df.groupby(df.index.date).min('Price')['Price']
-    analyzed['Date'] = df.groupby(df.index.date).max('Price').index
-    analyzed['Open_Timestamp'] = df.groupby(df.index.date).min('Timestamp')['Timestamp']
-    analyzed['Close_Timestamp'] = df.groupby(df.index.date).max('Timestamp')['Timestamp']
-    analyzed['Open'] = analyzed.apply(opents2price, axis=1)
-    analyzed['Close'] = analyzed.apply(closets2price, axis=1)
+    analyzed["High"] = df.groupby(df.index.date).max("Price")["Price"]
+    analyzed["Low"] = df.groupby(df.index.date).min("Price")["Price"]
+    analyzed["Date"] = df.groupby(df.index.date).max("Price").index
+    analyzed["Open_Timestamp"] = df.groupby(df.index.date).min("Timestamp")["Timestamp"]
+    analyzed["Close_Timestamp"] = df.groupby(df.index.date).max("Timestamp")["Timestamp"]
+    analyzed["Open"] = analyzed.apply(opents2price, axis=1)
+    analyzed["Close"] = analyzed.apply(closets2price, axis=1)
 
-    fig = go.Figure(data=[go.Candlestick(x=analyzed['Date'],
-            open=analyzed['Open'],
-            high=analyzed['High'],
-            low=analyzed['Low'],
-            close=analyzed['Close'])])
+    fig = go.Figure(
+        data=[
+            go.Candlestick(
+                x=analyzed["Date"],
+                open=analyzed["Open"],
+                high=analyzed["High"],
+                low=analyzed["Low"],
+                close=analyzed["Close"],
+            )
+        ]
+    )
 
-    fig.update_layout(plot_bgcolor="#333333",
-                    paper_bgcolor="#333333",
-                    font=dict(color="white"),
-                    xaxis={'showgrid':False},
-                    width=900, height=600)
+    fig.update_layout(
+        plot_bgcolor="#333333",
+        paper_bgcolor="#333333",
+        font=dict(color="white"),
+        xaxis={"showgrid": False},
+        width=900,
+        height=600,
+    )
 
     fig.write_image("/tmp/chartimage.png")
+
 
 def main():
     with requests.Session() as S:
@@ -227,11 +235,7 @@ def main():
                 if text.startswith("/aoc21 "):
                     _cmd, topn = text.split(" ", 1)
                     topn = int(topn)
-                    send_message(
-                        session=S,
-                        chat_id=chat_id,
-                        text=aoc21(topn)
-                        )
+                    send_message(session=S, chat_id=chat_id, text=aoc21(topn))
 
                 if text.startswith("/uds "):
                     _uds, keyword = text.split(" ", 1)
@@ -268,8 +272,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
-                            + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
                         )
                         logger.info("UDS: served cam keyword %s", keyword)
 
@@ -290,8 +293,7 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
-                            + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
                         )
                         logger.info("UDS: served camfr keyword %s", keyword)
 
