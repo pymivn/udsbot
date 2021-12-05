@@ -49,7 +49,7 @@ def aoc21(topn=10):
         logger.info("AOC: Getting newest data")
         r = requests.get("https://adventofcode.com/2021/leaderboard/private/view/416592.json", cookies=cookies)
         d = r.json()
-        with open(datafile, "rw") as f:
+        with open(datafile, "wt") as f:
             json.dump(d, f)
 
     scoreboard = [
@@ -60,7 +60,7 @@ def aoc21(topn=10):
 
     lines = [f"{idx}. " + " ".join((str(p) for p in i)) for idx, i in enumerate(scoreboard[:topn])]
 
-    return f"AoC2021 PyMi At {timestamp} - refresh each 15m\n" + "\n".join(lines)
+    return f"AoC2021 PyMi At {timestamp}UTC - refresh each 15m\n" + "\n".join(lines)
 
 
 def _get_coin_name(code):
