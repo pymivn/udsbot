@@ -34,7 +34,7 @@ def aoc21(topn=10):
     d = {}
     timestamp = ""
     try:
-        if os.stat(datafile).st_mtime < time.time() - 15 * 60:
+        if os.stat(datafile).st_mtime > time.time() - 15 * 60:
             logger.info("AOC: Cache fresh, use it")
 
             timestamp = time.strftime("%Y%m%d %H:%M", time.gmtime(os.stat(datafile).st_mtime))
@@ -256,11 +256,6 @@ def main():
                 chat_id = r["message"]["chat"]["id"]
                 text = r["message"]["text"].strip()
 
-                if text.startswith("/aoc21 "):
-                    _cmd, topn = text.split(" ", 1)
-                    topn = int(topn)
-                    send_message(session=S, chat_id=chat_id, text=aoc21(topn))
-
                 if text.startswith("/uds "):
                     _uds, keyword = text.split(" ", 1)
 
@@ -436,6 +431,10 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                         logger.info("Get price of %s", coin_code)
                     except Exception as e:
                         send_message(session=S, chat_id=chat_id, text=f"Create chart failed with error: {e}, {type(e)}")
+                elif text.startswith("/aoc21 "):
+                    _cmd, topn = text.split(" ", 1)
+                    topn = int(topn)
+                    send_message(session=S, chat_id=chat_id, text=aoc21(topn))
                 else:
                     logger.info("Unknown command: %s", text)
 
