@@ -2,7 +2,10 @@
 
 import logging
 import os
+import json
 import time
+import datetime
+import hashlib
 
 import requests
 import uds
@@ -25,8 +28,30 @@ os.environ["TZ"] = "Asia/Ho_Chi_Minh"
 def aoc21(topn=10):
     cookies = {"session": AOC_SESSION}
 
-    r = requests.get("https://adventofcode.com/2021/leaderboard/private/view/416592.json", cookies=cookies)
-    d = r.json()
+    h = hashlib.sha256(AOC_SESSION.encode("utf-8")).hexdigest()
+    datafile = f"/tmp/uds_aoc_{h}"
+
+    d = {}
+    timestamp = ""
+    try:
+        if os.stat(datafile).st_mtime < time.time() - 15 * 60:
+            logger.info("AOC: Cache fresh, use it")
+
+            timestamp = time.strftime("%Y%m%d %H:%M", time.gmtime(os.stat(datafile).st_mtime))
+
+            with open(datafile) as f:
+                d = json.load(f)
+    except IOError:
+        pass
+
+    if not d:
+        timestamp = datetime.datetime.now().strftime("%Y%m%d %H:%M")
+        logger.info("AOC: Getting newest data")
+        r = requests.get("https://adventofcode.com/2021/leaderboard/private/view/416592.json", cookies=cookies)
+        d = r.json()
+        with open(datafile, "rw") as f:
+            json.dump(d, f)
+
     scoreboard = [
         (e["name"], e["local_score"], e["stars"])
         for e in sorted(d["members"].values(), key=lambda i: i["local_score"], reverse=True)
@@ -35,7 +60,7 @@ def aoc21(topn=10):
 
     lines = [f"{idx}. " + " ".join((str(p) for p in i)) for idx, i in enumerate(scoreboard[:topn])]
 
-    return "\n".join(lines)
+    return f"AoC2021 PyMi At {timestamp} - refresh each 15m\n" + "\n".join(lines)
 
 
 def _get_coin_name(code):
@@ -146,7 +171,6 @@ def get_price_btc(coin="bitcoin"):
 
 def create_chart(coin="bitcoin"):
     import pandas as pd
-    from datetime import datetime
     import plotly.graph_objects as go
 
     def opents2price(row):
