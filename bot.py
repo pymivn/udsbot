@@ -15,10 +15,30 @@ OFFSET_FILE = "/tmp/uds_telegrambot_offset"
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 # get temp token from https://openweathermap.org/
 API_TEMP = os.environ["WEATHER_TOKEN"]
+AOC_SESSION = os.environ.get("AOC_SESSION")
 
 base = f"https://api.telegram.org/bot{BOT_TOKEN}/"
 
 os.environ["TZ"] = "Asia/Ho_Chi_Minh"
+
+def aoc21(topn=10):
+    cookies = {
+      "session": AOC_SESSION
+    }
+
+    r = requests.get('https://adventofcode.com/2021/leaderboard/private/view/416592.json',
+                     cookies=cookies)
+    d = r.json()
+    scoreboard = [(e['name'], e['local_score'],e['stars'])
+     for e in sorted(d["members"].values(), key=lambda i: i['local_score'], reverse=True) if e['stars'] > 0]
+
+    lines = [
+        f"{idx}. " + " ".join((str(p) for p in i))
+        for idx, i in enumerate(scoreboard[:topn])
+    ]
+
+    return ("\n".join(lines))
+
 
 def _get_coin_name(code):
     return dict([
@@ -203,6 +223,15 @@ def main():
             if "text" in message:
                 chat_id = r["message"]["chat"]["id"]
                 text = r["message"]["text"].strip()
+
+                if text.startswith("/aoc21 "):
+                    _cmd, topn = text.split(" ", 1)
+                    topn = int(topn)
+                    send_message(
+                        session=S,
+                        chat_id=chat_id,
+                        text=aoc21(topn)
+                        )
 
                 if text.startswith("/uds "):
                     _uds, keyword = text.split(" ", 1)
