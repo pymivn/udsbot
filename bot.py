@@ -431,9 +431,12 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                         logger.info("Get price of %s", coin_code)
                     except Exception as e:
                         send_message(session=S, chat_id=chat_id, text=f"Create chart failed with error: {e}, {type(e)}")
-                elif text.startswith("/aoc21 "):
-                    _cmd, topn = text.split(" ", 1)
-                    topn = int(topn)
+                elif text.startswith("/aoc21"):
+                    try:
+                        _cmd, topn = text.split(" ", 1)
+                        topn = int(topn)
+                    except Exception:
+                        topn=10
                     send_message(session=S, chat_id=chat_id, text=aoc21(topn))
                 else:
                     logger.info("Unknown command: %s", text)
