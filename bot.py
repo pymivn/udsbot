@@ -58,7 +58,7 @@ def aoc21(topn=10):
         if e["stars"] > 0
     ]
 
-    lines = [f"{idx}. " + " ".join((str(p) for p in i)) for idx, i in enumerate(scoreboard[:topn])]
+    lines = [f"{idx}. " + " ".join((str(p) for p in i)) for idx, i in enumerate(scoreboard[:topn], start=1)]
 
     return f"AoC2021 PyMi At {timestamp}UTC - refresh each 15m\n" + "\n".join(lines)
 
