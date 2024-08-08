@@ -6,9 +6,11 @@ import json
 import time
 import datetime
 import hashlib
+import random
 
 import requests
 import uds
+import requests_html
 
 
 logging.basicConfig(level=logging.INFO)
@@ -227,6 +229,26 @@ def create_chart(coin="bitcoin"):
     fig.write_image("/tmp/chartimage.png")
 
 
+
+def jisho(nth=0):
+    word_class = "kanji_light_content"
+    page = datetime.date.today().day % 9
+    url = "https://jisho.org/search/%23kanji%20%23grade:2?page={}".format(
+            page
+    )
+
+    sess = requests_html.HTMLSession()
+    resp = sess.get(url)
+    nodes = resp.html.xpath('//div[@class="kanji_light_content"]')
+    if nth < len(nodes):
+        node = nodes[nth]
+    else:
+        node = random.choice(nodes)
+
+    kanji, meaning, *kun_on = node.text.splitlines()[3:]
+    return "{}: {}  {}".format(kanji, meaning, " ".join(kun_on))
+
+
 def main():
     with requests.Session() as S:
         try:
@@ -438,6 +460,12 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                     except Exception:
                         topn=10
                     send_message(session=S, chat_id=chat_id, text=aoc21(topn))
+                elif text.startswith("/ji"):
+                    try:
+                        _cmd, nth = text.split(" ", 1)
+                    except Exception:
+                        nth = 100
+                    send_message(session=S, chat_id=chat_id, text=jisho(int(nth)))
                 else:
                     logger.info("Unknown command: %s", text)
 
