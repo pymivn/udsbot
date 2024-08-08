@@ -240,13 +240,17 @@ def jisho(nth=0):
     sess = requests_html.HTMLSession()
     resp = sess.get(url)
     nodes = resp.html.xpath('//div[@class="kanji_light_content"]')
+
     if nth < len(nodes):
         node = nodes[nth]
     else:
         node = random.choice(nodes)
 
     kanji, meaning, *kun_on = node.text.splitlines()[3:]
-    return "{}: {}  {}".format(kanji, meaning, " ".join(kun_on))
+    e = node.xpath("//a")[0]
+    url = e.attrs["href"].strip("/")
+
+    return "{}: {}\n{}\n{}".format(kanji, meaning, " ".join(kun_on), url)
 
 
 def main():
