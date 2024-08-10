@@ -10,7 +10,7 @@ import random
 
 import requests
 import uds
-import requests_html
+import jp_dict
 
 
 logging.basicConfig(level=logging.INFO)
@@ -25,6 +25,9 @@ AOC_SESSION = os.environ.get("AOC_SESSION")
 base = f"https://api.telegram.org/bot{BOT_TOKEN}/"
 
 os.environ["TZ"] = "Asia/Ho_Chi_Minh"
+
+
+jp_dict.init_kanji_db()
 
 
 def aoc21(topn=10):
@@ -229,28 +232,13 @@ def create_chart(coin="bitcoin"):
     fig.write_image("/tmp/chartimage.png")
 
 
+def kanji(grade=2, nth=-1):
+    if nth == -1:
+        nth = random.randrange(jp_dict.NUMBER_OF_YOJO_WORDS)
+    k = jp_dict.get_kanji(grade=grade, nth=nth)
 
-def jisho(nth=0):
-    word_class = "kanji_light_content"
-    page = datetime.date.today().day % 9
-    url = "https://jisho.org/search/%23kanji%20%23grade:2?page={}".format(
-            page
-    )
+    return "{}: {}\n{}\n{}".format(k.char, k.meaning, k.reading, k.url)
 
-    sess = requests_html.HTMLSession()
-    resp = sess.get(url)
-    nodes = resp.html.xpath('//div[@class="kanji_light_content"]')
-
-    if nth < len(nodes):
-        node = nodes[nth]
-    else:
-        node = random.choice(nodes)
-
-    kanji, meaning, *kun_on = node.text.splitlines()[3:]
-    e = node.xpath("//a")[0]
-    url = e.attrs["href"].strip("/")
-
-    return "{}: {}\n{}\n{}".format(kanji, meaning, " ".join(kun_on), url)
 
 
 def main():
@@ -466,13 +454,12 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                     send_message(session=S, chat_id=chat_id, text=aoc21(topn))
                 elif text.startswith("/ji"):
                     try:
-                        _cmd, nth = text.split(" ", 1)
+                        _cmd, grade, nth = text.split(" ", 2)
                     except Exception:
-                        nth = 100
-                    send_message(session=S, chat_id=chat_id, text=jisho(int(nth)))
-                else:
-                    logger.info("Unknown command: %s", text)
-
+                        grade = 2
+                        nth = -1
+                        logger.info("Get joyo kanji grade: %d #%d", grade, nth)
+                    send_message(session=S, chat_id=chat_id, text=kanji(grade, int(nth)))
                 with open(OFFSET_FILE, "w") as f:
                     f.write(str(update_id))
 
