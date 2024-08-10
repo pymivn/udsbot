@@ -463,9 +463,14 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                         topn = 10
                     send_message(session=S, chat_id=chat_id, text=aoc21(topn))
                 elif text.startswith("/ji"):
-                    try:
-                        _cmd, grade, nth = text.split(" ", 2)
-                    except Exception:
+                    parts = text.split(" ")
+                    if len(parts) == 2:
+                        grade = parts[1]
+                        nth = -1
+                    elif len(parts) == 3:
+                        _cmd, grade, nth = parts
+                        nth = -1
+                    else:
                         grade = 2
                         nth = -1
                         logger.info("Get joyo kanji grade: %d #%d", grade, nth)
