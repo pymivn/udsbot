@@ -52,7 +52,10 @@ def aoc21(topn=10):
     if not d:
         timestamp = datetime.datetime.now().strftime("%Y%m%d %H:%M")
         logger.info("AOC: Getting newest data")
-        r = requests.get("https://adventofcode.com/2021/leaderboard/private/view/416592.json", cookies=cookies)
+        r = requests.get(
+            "https://adventofcode.com/2021/leaderboard/private/view/416592.json",
+            cookies=cookies,
+        )
         d = r.json()
         with open(datafile, "wt") as f:
             json.dump(d, f)
@@ -189,7 +192,8 @@ def create_chart(coin="bitcoin"):
         return rs
 
     data = requests.get(
-        f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days=60", timeout=7
+        f"https://api.coingecko.com/api/v3/coins/{coin}/market_chart?vs_currency=usd&days=60",
+        timeout=7,
     ).json()
 
     df = pd.DataFrame(
@@ -238,7 +242,6 @@ def kanji(grade=2, nth=-1):
     k = jp_dict.get_kanji(grade=grade, nth=nth)
 
     return "{}: {}\n{}\n{}".format(k.char, k.meaning, k.reading, k.url)
-
 
 
 def main():
@@ -444,13 +447,17 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                             send_photo(chat_id, f)
                         logger.info("Get price of %s", coin_code)
                     except Exception as e:
-                        send_message(session=S, chat_id=chat_id, text=f"Create chart failed with error: {e}, {type(e)}")
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text=f"Create chart failed with error: {e}, {type(e)}",
+                        )
                 elif text.startswith("/aoc21"):
                     try:
                         _cmd, topn = text.split(" ", 1)
                         topn = int(topn)
                     except Exception:
-                        topn=10
+                        topn = 10
                     send_message(session=S, chat_id=chat_id, text=aoc21(topn))
                 elif text.startswith("/ji"):
                     try:

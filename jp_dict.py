@@ -18,9 +18,7 @@ def fetch_jisho_grade_words(grade=1):
 
     page = 1
     while True:
-        url = "https://fetch_jisho_grade_words.org/search/%23kanji%20%23grade:{}?page={}".format(
-            grade, page
-        )
+        url = "https://fetch_jisho_grade_words.org/search/%23kanji%20%23grade:{}?page={}".format(grade, page)
 
         resp = sess.get(url)
         nodes = resp.html.xpath('//div[@class="kanji_light_content"]')
@@ -56,11 +54,7 @@ def init_kanji_db():
         )
         conn.executemany(
             "INSERT INTO kanji_chars(kanji, meaning, reading, grade, url) VALUES (?, ?, ?, ?, ?)",
-            (
-                (i["kanji"], i["meaning"], i["reading"], grade, i["url"])
-                for grade, v in ws.items()
-                for i in v
-            ),
+            ((i["kanji"], i["meaning"], i["reading"], grade, i["url"]) for grade, v in ws.items() for i in v),
         )
 
         print("Initialized db joyo.db")
@@ -81,11 +75,7 @@ class Kanji:
 
 def chars_count_by_grade() -> dict[str, int]:
     with get_db() as DB:
-        return dict(
-            DB.execute(
-                "SELECT grade, count(*) from kanji_chars group by grade"
-            )
-        )
+        return dict(DB.execute("SELECT grade, count(*) from kanji_chars group by grade"))
 
 
 def get_kanji(grade=2, nth=1) -> Kanji:
