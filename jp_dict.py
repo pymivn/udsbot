@@ -47,7 +47,8 @@ def init_kanji_db():
         print("joyo.db already exists, skip")
         return
 
-    ws = json.load(open("joyo_final.json"))
+    json_path = os.path.join(os.path.dirname(__file__), "joyo_final.json")
+    ws = json.load(open(json_path))
     with sqlite3.connect("joyo.db") as conn:
         conn.execute(
             "CREATE TABLE IF NOT EXISTS kanji_chars (id INTEGER PRIMARY KEY, kanji text, meaning text, reading text, grade text, url text);"
