@@ -27,7 +27,9 @@ base = f"https://api.telegram.org/bot{BOT_TOKEN}/"
 os.environ["TZ"] = "Asia/Ho_Chi_Minh"
 
 
-jp_dict.init_kanji_db()
+dbpath = ":memory:"
+db = jp_dict.init_kanji_db(dbpath)
+kanji_service = jp_dict.KanjiService(db)
 
 
 def aoc21(topn=10):
@@ -237,9 +239,10 @@ def create_chart(coin="bitcoin"):
 
 
 def kanji(grade=2, nth=-1):
+
     if nth == -1:
         nth = random.randrange(jp_dict.NUMBER_OF_YOJO_WORDS)
-    k = jp_dict.get_kanji(grade=grade, nth=nth)
+    k = kanji_service.get_kanji(grade=grade, nth=nth)
 
     return "{}: {}\n{}\n{}".format(k.char, k.meaning, k.reading, k.url)
 

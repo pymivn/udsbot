@@ -42,32 +42,31 @@ def get_a_node(node) -> dict:
     }
 
 
-def init_kanji_db():
-    if os.path.exists("joyo.db"):
-        print("joyo.db already exists, skip")
+def init_kanji_db(dbpath):
+    if os.path.exists(dbpath):
+        print("dbpath already exists, skip")
         return
 
     json_path = os.path.join(os.path.dirname(__file__), "joyo_final.json")
     ws = json.load(open(json_path))
-    try:
-        conn = sqlite3.connect("joyo.db")
-    except Exception:
-        conn = sqlite3.connect(":memory:")
 
-    with conn:
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS kanji_chars (id INTEGER PRIMARY KEY, kanji text, meaning text, reading text, grade text, url text);"
-        )
-        conn.executemany(
-            "INSERT INTO kanji_chars(kanji, meaning, reading, grade, url) VALUES (?, ?, ?, ?, ?)",
-            ((i["kanji"], i["meaning"], i["reading"], grade, i["url"]) for grade, v in ws.items() for i in v),
-        )
+    conn = sqlite3.connect(dbpath)
 
-        print("Initialized db joyo.db")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS kanji_chars (id INTEGER PRIMARY KEY, kanji text, meaning text, reading text, grade text, url text);"
+    )
+    conn.executemany(
+        "INSERT INTO kanji_chars(kanji, meaning, reading, grade, url) VALUES (?, ?, ?, ?, ?)",
+        ((i["kanji"], i["meaning"], i["reading"], grade, i["url"]) for grade, v in ws.items() for i in v),
+    )
+    conn.commit()
+
+    print("Initialized db ", dbpath)
+    return conn
 
 
-def get_db():
-    return sqlite3.connect("joyo.db")
+def get_db(dbpath):
+    return sqlite3.connect(dbpath)
 
 
 @dataclass
@@ -79,28 +78,29 @@ class Kanji:
     url: str
 
 
-def chars_count_by_grade() -> dict[str, int]:
-    with get_db() as DB:
-        return dict(DB.execute("SELECT grade, count(*) from kanji_chars group by grade"))
+class KanjiService:
+    def __init__(self, conn):
+        self.db = conn
 
+    def chars_count_by_grade(self) -> dict[str, int]:
+        return dict(self.db.execute("SELECT grade, count(*) from kanji_chars group by grade"))
 
-def get_kanji(grade=2, nth=1) -> Kanji:
-    grades_chars = chars_count_by_grade()
-    if str(grade) not in grades_chars:
-        grade = 2
-    # user count from 1, db count from 0
-    if nth >= 1:
-        nth = nth - 1
+    def get_kanji(self, grade=2, nth=1) -> Kanji:
+        grades_chars = self.chars_count_by_grade()
+        if str(grade) not in grades_chars:
+            grade = 2
+        # user count from 1, db count from 0
+        if nth >= 1:
+            nth = nth - 1
 
-    nth = nth % grades_chars[str(grade)]
+        nth = nth % grades_chars[str(grade)]
 
-    with get_db() as DB:
-        r = DB.execute(
+        r = self.db.execute(
             "SELECT kanji, meaning, reading, grade, url FROM kanji_chars WHERE grade=? LIMIT 1 OFFSET ? ",
             (grade, nth),
         ).fetchone()
         url = "{}%20%23grade:{}".format(r[4], grade)
-    return Kanji(char=r[0], meaning=r[1], reading=r[2], grade=r[3], url=url)
+        return Kanji(char=r[0], meaning=r[1], reading=r[2], grade=r[3], url=url)
 
 
 def main() -> None:
@@ -140,9 +140,10 @@ def main() -> None:
         json.dump(r, f, indent=4)
         print("Wrote joyo_final.json")
 
-    init_kanji_db()
-    print(get_kanji(1, 0))
-    print(get_kanji(2, 1))
+    conn = init_kanji_db(dbpath="yojo.db")
+    ks = KanjiService(conn)
+    print(ks.get_kanji(1, 0))
+    print(ks.get_kanji(2, 1))
 
 
 if __name__ == "__main__":
