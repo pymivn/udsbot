@@ -462,7 +462,7 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                     except Exception:
                         topn = 10
                     send_message(session=S, chat_id=chat_id, text=aoc21(topn))
-                elif text.startswith("/ji"):
+                elif text.startswith("/jo"):
                     parts = text.split(" ")
                     if len(parts) == 2:
                         grade = parts[1]
@@ -471,10 +471,32 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                         _cmd, grade, nth = parts
                         nth = -1
                     else:
-                        grade = 2
+                        grade = 3
                         nth = -1
                         logger.info("Get joyo kanji grade: %d #%d", grade, nth)
                     send_message(session=S, chat_id=chat_id, text=kanji(grade, int(nth)))
+
+                elif text.startswith("/ji "):
+                    _cam, keyword = text.split(" ", 1)
+
+                    try:
+                        result = jp_dict.search_jisho(keyword)
+                        url, ipa, meanings = (
+                            result["url"],
+                            result["reading"],
+                            result["means"],
+                        )
+                    except Exception:
+                        logger.exception(keyword)
+                    else:
+                        msg = fit_meanings_to_message(url, meanings)
+                        send_message(
+                            session=S,
+                            chat_id=chat_id,
+                            text=f"Jisho result for `{keyword}`\nReading: {ipa}\n" + msg,
+                        )
+                        logger.info("Jisho: served ji keyword %s", keyword)
+
                 with open(OFFSET_FILE, "w") as f:
                     f.write(str(update_id))
 

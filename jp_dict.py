@@ -4,6 +4,7 @@ import time
 import sqlite3
 from dataclasses import dataclass
 
+import requests
 import requests_html
 
 
@@ -11,6 +12,24 @@ import requests_html
 DELAY = 10
 
 NUMBER_OF_YOJO_WORDS = 2136
+
+
+def search_jisho(word):
+    resp = requests.get(f"https://jisho.org/api/v1/search/words?keyword={word}").json()
+    data = resp["data"]
+    for result in data:
+        # return only the first result if exists
+        url = "https://jisho.org/word/{}".format(result["slug"])
+        reading = ",".join(i["word"] + ":" + i["reading"] for i in result["japanese"])
+        means = [",".join(s["english_definitions"]) for s in result["senses"]]
+
+        res = {
+            "url": url,
+            "reading": reading,
+            "means": means,
+        }
+        return res
+    return {"url": "", "reading": "", "means": ""}
 
 
 def fetch_jisho_grade_words(grade=1):
