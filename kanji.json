@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "status": 200
+  },
+  "data": [
+    {
+      "slug": "飲み放題",
+      "is_common": false,
+      "tags": [
+        "wanikani15"
+      ],
+      "jlpt": [],
+      "japanese": [
+        {
+          "word": "飲み放題",
+          "reading": "のみほうだい"
+        }
+      ],
+      "senses": [
+        {
+          "english_definitions": [
+            "all you can drink",
+            "bottomless cup"
+          ],
+          "parts_of_speech": [
+            "Expressions (phrases, clauses, etc.)",
+            "Noun which may take the genitive case particle 'no'"
+          ],
+          "links": [],
+          "tags": [],
+          "restrictions": [],
+          "see_also": [],
+          "antonyms": [],
+          "source": [],
+          "info": []
+        }
+      ],
+      "attribution": {
+        "jmdict": true,
+        "jmnedict": false,
+        "dbpedia": false
+      }
+    }
+  ]
+}
