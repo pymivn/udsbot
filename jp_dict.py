@@ -20,8 +20,8 @@ def search_jisho(word):
     for result in data:
         # return only the first result if exists
         url = "https://jisho.org/word/{}".format(result["slug"])
-        reading = ",".join(i["word"] + ":" + i["reading"] for i in result["japanese"])
-        means = [",".join(s["english_definitions"]) for s in result["senses"]]
+        reading = ", ".join(i["word"] + ":" + i["reading"] for i in result["japanese"])
+        means = [", ".join(s["english_definitions"]) for s in result["senses"]]
 
         res = {
             "url": url,
