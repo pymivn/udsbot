@@ -104,8 +104,15 @@ def get_aqi_hanoi():
 
 def get_aqi_hcm():
     resp = requests.get(
-        "https://api.waqi.info/mapq/bounds/?bounds=9.96885060854611,105.71594238281251,12.232654837013484,108.30871582031251"
+        "https://api.waqi.info/mapq/bounds/?bounds=10.65961,105.71594238281251,10.65962,108.30871582031251"
     )
+    locs = resp.json()
+    us_embassy = locs[0]
+    return us_embassy["city"], us_embassy["aqi"], us_embassy["utime"]
+
+
+def get_aqi_jp():
+    resp = requests.get("https://api.waqi.info/mapq/bounds/?bounds=35.4002957,139.4889003,35.4002958,139.5889103")
     locs = resp.json()
     us_embassy = locs[0]
     return us_embassy["city"], us_embassy["aqi"], us_embassy["utime"]
@@ -339,7 +346,7 @@ def main():
                 elif text.startswith("/aqi"):
                     # _aqi, city = text.split(" ", 1)
                     city = "hn&hcm"
-                    location, value, utime = get_aqi_hanoi()
+                    location, value, utime = get_aqi_jp()
                     send_message(
                         session=S,
                         chat_id=chat_id,
@@ -363,7 +370,7 @@ def main():
                             text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
                         )
                     else:
-                        cities = ["Hanoi", "Ho Chi Minh"]
+                        cities = ["Yokohama", "Ho Chi Minh"]
                         temp_cities = get_temp(cities)
                         for temp in temp_cities:
                             send_message(
@@ -380,7 +387,7 @@ def main():
                             text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
                         )
                     else:
-                        cities = ["Hanoi", "Ho Chi Minh"]
+                        cities = ["Yokohama", "Ho Chi Minh"]
                         temp_cities = get_temp(cities)
                         for temp in temp_cities:
                             send_message(
@@ -390,7 +397,7 @@ def main():
                             )
                             logger.info("Temp: served city %s", temp["name"])
                         city = "hn&hcm"
-                        location, value, utime = get_aqi_hanoi()
+                        location, value, utime = get_aqi_jp()
                         send_message(
                             session=S,
                             chat_id=chat_id,
