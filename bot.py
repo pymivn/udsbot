@@ -345,8 +345,8 @@ def main():
 
                 elif text.startswith("/aqi"):
                     # _aqi, city = text.split(" ", 1)
-                    city = "hn&hcm"
-                    location, value, utime = get_aqi_jp()
+                    city = "hn&hcm&jp"
+                    location, value, utime = get_aqi_hanoi()
                     send_message(
                         session=S,
                         chat_id=chat_id,
@@ -354,6 +354,12 @@ def main():
                     )
 
                     location, value, utime = get_aqi_hcm()
+                    send_message(
+                        session=S,
+                        chat_id=chat_id,
+                        text=f"PM2.5 {value} at {location} at {utime}",
+                    )
+                    location, value, utime = get_aqi_jp()
                     send_message(
                         session=S,
                         chat_id=chat_id,
