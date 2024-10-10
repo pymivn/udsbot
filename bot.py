@@ -279,6 +279,10 @@ def main():
             update_id = r["update_id"]
             try:
                 message = r["message"]
+                timestamp = message["date"]
+                # skip message older than 5 min
+                if time.time() - timestamp > 5 * 60:
+                    continue
             except KeyError:
                 continue
             if "text" in message:
