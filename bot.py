@@ -112,8 +112,10 @@ def get_aqi_hcm():
 
 
 def get_aqi_jp():
-    resp = requests.get("https://api.waqi.info/mapq/bounds/?bounds=35.4002957,139.4889003,35.4002958,139.5889103")
+    resp = requests.get("https://api.waqi.info/mapq/bounds/?bounds=35.2002957,139.2889003,35.4002958,139.5889103")
     locs = resp.json()
+    if locs == []:
+        return '', '', ''
     us_embassy = locs[0]
     return us_embassy["city"], us_embassy["aqi"], us_embassy["utime"]
 
