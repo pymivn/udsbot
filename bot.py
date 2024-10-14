@@ -103,12 +103,23 @@ def get_aqi_hanoi():
 
 
 def get_aqi_hcm():
-    resp = requests.get(
-        "https://api.waqi.info/mapq/bounds/?bounds=10.65961,105.71594238281251,10.65962,108.30871582031251"
-    )
+    url = "https://airnet.waqi.info/airnet/map/bounds"
+    data = {
+        "bounds":"106.65545867915007,10.773554342818551,106.71194267422896,10.788963661784884",
+        "zoom":16,
+        "xscale":61493.52564648868,
+        "width":2481}
+
+    resp = requests.post(url, json=data)
     locs = resp.json()
-    us_embassy = locs[0]
-    return us_embassy["city"], us_embassy["aqi"], us_embassy["utime"]
+    us_embassy = locs['data'][0]
+
+    us_embassy.update(
+        {'utime': datetime.datetime.utcfromtimestamp(
+            us_embassy['u']
+        ).strftime('%Y-%m-%d %H:%M:%S')}
+    )
+    return us_embassy["n"], us_embassy["a"], us_embassy["utime"]
 
 
 def get_aqi_jp():
