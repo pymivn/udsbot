@@ -55,7 +55,7 @@ def aoc21(topn=10):
         timestamp = datetime.datetime.now().strftime("%Y%m%d %H:%M")
         logger.info("AOC: Getting newest data")
         r = requests.get(
-            "https://adventofcode.com/2021/leaderboard/private/view/416592.json",
+            "https://adventofcode.com/2024/leaderboard/private/view/416592.json",
             cookies=cookies,
         )
         d = r.json()
