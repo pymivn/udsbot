@@ -490,7 +490,7 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                             chat_id=chat_id,
                             text=f"Create chart failed with error: {e}, {type(e)}",
                         )
-                elif text.startswith("/aoc21"):
+                elif text.startswith("/aoc"):
                     try:
                         _cmd, topn = text.split(" ", 1)
                         topn = int(topn)
