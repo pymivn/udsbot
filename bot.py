@@ -70,7 +70,7 @@ def aoc21(topn=10):
 
     lines = [f"{idx}. " + " ".join((str(p) for p in i)) for idx, i in enumerate(scoreboard[:topn], start=1)]
 
-    return f"AoC2021 PyMi At {timestamp}UTC - refresh each 15m\n" + "\n".join(lines)
+    return f"AoC PyMi At {timestamp}UTC - refresh each 15m\n" + "\n".join(lines)
 
 
 def _get_coin_name(code):
