@@ -1,2 +1,3 @@
 fmt:
-	black -l 120 *.py
+	ruff format *.py
+	ruff check *.py

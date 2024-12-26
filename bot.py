@@ -44,7 +44,9 @@ def aoc21(topn=10):
         if os.stat(datafile).st_mtime > time.time() - 15 * 60:
             logger.info("AOC: Cache fresh, use it")
 
-            timestamp = time.strftime("%Y%m%d %H:%M", time.gmtime(os.stat(datafile).st_mtime))
+            timestamp = time.strftime(
+                "%Y%m%d %H:%M", time.gmtime(os.stat(datafile).st_mtime)
+            )
 
             with open(datafile) as f:
                 d = json.load(f)
@@ -64,11 +66,16 @@ def aoc21(topn=10):
 
     scoreboard = [
         (e["name"], e["local_score"], e["stars"])
-        for e in sorted(d["members"].values(), key=lambda i: i["local_score"], reverse=True)
+        for e in sorted(
+            d["members"].values(), key=lambda i: i["local_score"], reverse=True
+        )
         if e["stars"] > 0
     ]
 
-    lines = [f"{idx}. " + " ".join((str(p) for p in i)) for idx, i in enumerate(scoreboard[:topn], start=1)]
+    lines = [
+        f"{idx}. " + " ".join((str(p) for p in i))
+        for idx, i in enumerate(scoreboard[:topn], start=1)
+    ]
 
     return f"AoC PyMi At {timestamp}UTC - refresh each 15m\n" + "\n".join(lines)
 
@@ -123,10 +130,12 @@ def get_aqi_hcm():
 
 
 def get_aqi_jp():
-    resp = requests.get("https://api.waqi.info/mapq/bounds/?bounds=35.2002957,139.2889003,35.4002958,139.5889103")
+    resp = requests.get(
+        "https://api.waqi.info/mapq/bounds/?bounds=35.2002957,139.2889003,35.4002958,139.5889103"
+    )
     locs = resp.json()
     if locs == []:
-        return '', '', ''
+        return "", "", ""
     us_embassy = locs[0]
     return us_embassy["city"], us_embassy["aqi"], us_embassy["utime"]
 
@@ -149,13 +158,14 @@ def send_photo(chat_id, file_opened):
 
 def fit_meanings_to_message(url, meanings):
     result = []
+    EACH_MEANING_LIMIT = 160
     for idx, meaning in enumerate(meanings):
-        if idx == 3:
+        if idx == 5:
             result.append("...")
             break
 
-        if len(meaning) > 140:
-            meaning = f"{meaning[:140]}..."
+        if len(meaning) > EACH_MEANING_LIMIT:
+            meaning = f"{meaning[:EACH_MEANING_LIMIT]}..."
         msg = f"{idx+1}. {meaning}"
         result.append(msg)
     result.append(url)
@@ -166,7 +176,9 @@ def get_temp(cities):
     results = []
     for city in cities:
         data_temp = requests.get(
-            "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(city, API_TEMP)
+            "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}".format(
+                city, API_TEMP
+            )
         ).json()
         results.append(
             {
@@ -230,7 +242,9 @@ def create_chart(coin="bitcoin"):
     analyzed["Low"] = df.groupby(df.index.date).min("Price")["Price"]
     analyzed["Date"] = df.groupby(df.index.date).max("Price").index
     analyzed["Open_Timestamp"] = df.groupby(df.index.date).min("Timestamp")["Timestamp"]
-    analyzed["Close_Timestamp"] = df.groupby(df.index.date).max("Timestamp")["Timestamp"]
+    analyzed["Close_Timestamp"] = df.groupby(df.index.date).max("Timestamp")[
+        "Timestamp"
+    ]
     analyzed["Open"] = analyzed.apply(opents2price, axis=1)
     analyzed["Close"] = analyzed.apply(closets2price, axis=1)
 
@@ -259,7 +273,6 @@ def create_chart(coin="bitcoin"):
 
 
 def kanji(grade=2, nth=-1):
-
     if nth == -1:
         nth = random.randrange(jp_dict.NUMBER_OF_YOJO_WORDS)
     k = kanji_service.get_kanji(grade=grade, nth=nth)
@@ -335,7 +348,8 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
+                            + msg,
                         )
                         logger.info("UDS: served cam keyword %s", keyword)
 
@@ -356,7 +370,8 @@ def main():
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
+                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
+                            + msg,
                         )
                         logger.info("UDS: served camfr keyword %s", keyword)
 
@@ -385,7 +400,6 @@ def main():
                     logger.info("AQI: served city %s", city)
 
                 elif text.startswith("/tem"):
-
                     if not API_TEMP:
                         send_message(
                             session=S,
@@ -509,7 +523,9 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                         grade = 3
                         nth = -1
                         logger.info("Get joyo kanji grade: %d #%d", grade, nth)
-                    send_message(session=S, chat_id=chat_id, text=kanji(grade, int(nth)))
+                    send_message(
+                        session=S, chat_id=chat_id, text=kanji(grade, int(nth))
+                    )
 
                 elif text.startswith("/ji "):
                     _cam, keyword = text.split(" ", 1)
@@ -528,7 +544,8 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Jisho result for `{keyword}`\nReading: {ipa}\n" + msg,
+                            text=f"Jisho result for `{keyword}`\nReading: {ipa}\n"
+                            + msg,
                         )
                         logger.info("Jisho: served ji keyword %s", keyword)
 
