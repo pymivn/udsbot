@@ -113,19 +113,22 @@ def get_aqi_hanoi():
 def get_aqi_hcm():
     url = "https://airnet.waqi.info/airnet/map/bounds"
     data = {
-        "bounds":"106.65545867915007,10.773554342818551,106.71194267422896,10.788963661784884",
-        "zoom":16,
-        "xscale":61493.52564648868,
-        "width":2481}
+        "bounds": "106.65545867915007,10.773554342818551,106.71194267422896,10.788963661784884",
+        "zoom": 16,
+        "xscale": 61493.52564648868,
+        "width": 2481,
+    }
 
     resp = requests.post(url, json=data)
     locs = resp.json()
-    us_embassy = locs['data'][0]
+    us_embassy = locs["data"][0]
 
     us_embassy.update(
-        {'utime': datetime.datetime.utcfromtimestamp(
-            us_embassy['u']
-        ).strftime('%Y-%m-%d %H:%M:%S')}
+        {
+            "utime": datetime.datetime.utcfromtimestamp(us_embassy["u"]).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+        }
     )
     return us_embassy["n"], us_embassy["a"], us_embassy["utime"]
 
@@ -280,7 +283,8 @@ def kanji(grade=2, nth=-1):
 
     return "{}: {}\n{}\n{}".format(k.char, k.meaning, k.reading, k.url)
 
-class Dispatcher():
+
+class Dispatcher:
     def __init__(self, session):
         self.session = session
 
@@ -302,7 +306,6 @@ class Dispatcher():
             )
             logger.info("UDS: served keyword %s", keyword)
 
-
     def dispatch_cam(self, text, chat_id, from_id):
         _cam, keyword = text.split(" ", 1)
 
@@ -320,12 +323,9 @@ class Dispatcher():
             send_message(
                 session=self.session,
                 chat_id=chat_id,
-                text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
-                + msg,
+                text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
             )
             logger.info("UDS: served cam keyword %s", keyword)
-
-
 
     def dispatch_hi(self, text, chat_id, from_id):
         if not API_TEMP:
@@ -377,9 +377,7 @@ class Dispatcher():
             grade = 3
             nth = -1
             logger.info("Get joyo kanji grade: %d #%d", grade, nth)
-        send_message(
-            session=self.session, chat_id=chat_id, text=kanji(grade, int(nth))
-        )
+        send_message(session=self.session, chat_id=chat_id, text=kanji(grade, int(nth)))
 
     def dispatch_cron(self, text, chat_id, from_id):
         cronjob.add_job(text, chat_id, from_id)
@@ -393,200 +391,195 @@ class Dispatcher():
 
 
 def fetch_message_and_process():
+    try:
+        with open(OFFSET_FILE) as f:
+            offset = int(f.read().strip())
+            params = {"offset": offset + 1}
+    except IOError:
+        params = None
+
+    resp = S.get(base + "getUpdates", json=params, timeout=20)
+    d = resp.json()
+
+    try:
+        rs = d["result"]
+    except KeyError:
+        print(d)
+        exit("Looks like a bad token")
+
+    update_id = None
+    for r in rs:
+        update_id = r["update_id"]
         try:
-            with open(OFFSET_FILE) as f:
-                offset = int(f.read().strip())
-                params = {"offset": offset + 1}
-        except IOError:
-            params = None
-
-        resp = S.get(base + "getUpdates", json=params, timeout=20)
-        d = resp.json()
-
-        try:
-            rs = d["result"]
-        except KeyError:
-            print(d)
-            exit("Looks like a bad token")
-
-        update_id = None
-        for r in rs:
-            update_id = r["update_id"]
-            try:
-                message = r["message"]
-                timestamp = message["date"]
-                # skip message older than 5 min
-                if time.time() - timestamp > 5 * 60:
-                    continue
-            except KeyError:
+            message = r["message"]
+            timestamp = message["date"]
+            # skip message older than 5 min
+            if time.time() - timestamp > 5 * 60:
                 continue
-            if "text" in message:
-                chat_id = r["message"]["chat"]["id"]
-                from_id = r["message"]["from"]["id"]
-                text = r["message"]["text"].strip()
-                logger.info("Processing %s from %s in chat %s",
-                        text, from_id, chat_id)
-                dispatcher = Dispatcher(session=S)
+        except KeyError:
+            continue
+        if "text" in message:
+            chat_id = r["message"]["chat"]["id"]
+            from_id = r["message"]["from"]["id"]
+            text = r["message"]["text"].strip()
+            logger.info("Processing %s from %s in chat %s", text, from_id, chat_id)
+            dispatcher = Dispatcher(session=S)
 
-                if text.startswith("/uds "):
-                    dispatcher.dispatch(text, chat_id, from_id)
+            if text.startswith("/uds "):
+                dispatcher.dispatch(text, chat_id, from_id)
 
-                elif text.startswith("/cam "):
-                    dispatcher.dispatch(text, chat_id, from_id)
-                elif text.startswith("/fr "):
-                    _cam, keyword = text.split(" ", 1)
+            elif text.startswith("/cam "):
+                dispatcher.dispatch(text, chat_id, from_id)
+            elif text.startswith("/fr "):
+                _cam, keyword = text.split(" ", 1)
 
-                    try:
-                        result = uds.cambridge_fr(keyword)
-                        url, ipa, meanings = (
-                            result["url"],
-                            result["ipa"],
-                            result["means"],
-                        )
-                    except Exception:
-                        logger.exception(keyword)
-                    else:
-                        msg = fit_meanings_to_message(url, meanings)
+                try:
+                    result = uds.cambridge_fr(keyword)
+                    url, ipa, meanings = (
+                        result["url"],
+                        result["ipa"],
+                        result["means"],
+                    )
+                except Exception:
+                    logger.exception(keyword)
+                else:
+                    msg = fit_meanings_to_message(url, meanings)
+                    send_message(
+                        session=S,
+                        chat_id=chat_id,
+                        text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
+                    )
+                    logger.info("UDS: served camfr keyword %s", keyword)
+
+            elif text.startswith("/aqi"):
+                # _aqi, city = text.split(" ", 1)
+                city = "hn&hcm&jp"
+                location, value, utime = get_aqi_hanoi()
+                send_message(
+                    session=S,
+                    chat_id=chat_id,
+                    text=f"PM2.5 {value} at {location} at {utime}",
+                )
+
+                location, value, utime = get_aqi_hcm()
+                send_message(
+                    session=S,
+                    chat_id=chat_id,
+                    text=f"PM2.5 {value} at {location} at {utime}",
+                )
+                location, value, utime = get_aqi_jp()
+                send_message(
+                    session=S,
+                    chat_id=chat_id,
+                    text=f"PM2.5 {value} at {location} at {utime}",
+                )
+                logger.info("AQI: served city %s", city)
+
+            elif text.startswith("/tem"):
+                if not API_TEMP:
+                    send_message(
+                        session=S,
+                        chat_id=chat_id,
+                        text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
+                    )
+                else:
+                    cities = ["Yokohama", "Ho Chi Minh"]
+                    temp_cities = get_temp(cities)
+                    for temp in temp_cities:
                         send_message(
                             session=S,
                             chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
-                            + msg,
+                            text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
                         )
-                        logger.info("UDS: served camfr keyword %s", keyword)
+                        logger.info("Temp: served city %s", temp["name"])
+            elif text.startswith("/hi"):
+                dispatcher.dispatch(text, chat_id, from_id)
+            elif text.startswith("/btc"):
+                try:
+                    code = text.split(" ")[1].lower()
+                except IndexError:
+                    code = "btc"
 
-                elif text.startswith("/aqi"):
-                    # _aqi, city = text.split(" ", 1)
-                    city = "hn&hcm&jp"
-                    location, value, utime = get_aqi_hanoi()
+                try:
+                    coin_code = _get_coin_name(code)
+                except KeyError:
                     send_message(
                         session=S,
                         chat_id=chat_id,
-                        text=f"PM2.5 {value} at {location} at {utime}",
+                        text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
                     )
-
-                    location, value, utime = get_aqi_hcm()
-                    send_message(
-                        session=S,
-                        chat_id=chat_id,
-                        text=f"PM2.5 {value} at {location} at {utime}",
-                    )
-                    location, value, utime = get_aqi_jp()
-                    send_message(
-                        session=S,
-                        chat_id=chat_id,
-                        text=f"PM2.5 {value} at {location} at {utime}",
-                    )
-                    logger.info("AQI: served city %s", city)
-
-                elif text.startswith("/tem"):
-                    if not API_TEMP:
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
-                        )
-                    else:
-                        cities = ["Yokohama", "Ho Chi Minh"]
-                        temp_cities = get_temp(cities)
-                        for temp in temp_cities:
-                            send_message(
-                                session=S,
-                                chat_id=chat_id,
-                                text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
-                            )
-                            logger.info("Temp: served city %s", temp["name"])
-                elif text.startswith("/hi"):
-                    dispatcher.dispatch(text, chat_id, from_id)
-                elif text.startswith("/btc"):
-                    try:
-                        code = text.split(" ")[1].lower()
-                    except IndexError:
-                        code = "btc"
-
-                    try:
-                        coin_code = _get_coin_name(code)
-                    except KeyError:
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
-                        )
-                    prices_data = get_price_btc(coin_code)
-                    send_message(
-                        session=S,
-                        chat_id=chat_id,
-                        text=f"""{coin_code.upper()} ${prices_data[coin_code]['usd']}
+                prices_data = get_price_btc(coin_code)
+                send_message(
+                    session=S,
+                    chat_id=chat_id,
+                    text=f"""{coin_code.upper()} ${prices_data[coin_code]['usd']}
 Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
 24h {round(prices_data[coin_code]['usd_24h_change'],1)}% """,
+                )
+
+            elif text == "/c" or text.startswith("/c "):
+                try:
+                    code = text.split(" ")[1].lower()
+                except IndexError:
+                    code = "btc"
+
+                try:
+                    coin_code = _get_coin_name(code)
+                except KeyError:
+                    send_message(
+                        session=S,
+                        chat_id=chat_id,
+                        text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
                     )
 
-                elif text == "/c" or text.startswith("/c "):
-                    try:
-                        code = text.split(" ")[1].lower()
-                    except IndexError:
-                        code = "btc"
+                try:
+                    create_chart(coin_code)
+                    imgfile = "/tmp/chartimage.png"
+                    with open(imgfile, "rb") as f:
+                        send_photo(chat_id, f)
+                    logger.info("Get price of %s", coin_code)
+                except Exception as e:
+                    send_message(
+                        session=S,
+                        chat_id=chat_id,
+                        text=f"Create chart failed with error: {e}, {type(e)}",
+                    )
+            elif text.startswith("/aoc"):
+                try:
+                    _cmd, topn = text.split(" ", 1)
+                    topn = int(topn)
+                except Exception:
+                    topn = 10
+                send_message(session=S, chat_id=chat_id, text=aoc21(topn))
+            elif text.startswith("/jo"):
+                dispatcher.dispatch(text, chat_id, from_id)
 
-                    try:
-                        coin_code = _get_coin_name(code)
-                    except KeyError:
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
-                        )
+            elif text.startswith("/cron "):
+                dispatcher.dispatch(text, chat_id, from_id)
 
-                    try:
-                        create_chart(coin_code)
-                        imgfile = "/tmp/chartimage.png"
-                        with open(imgfile, "rb") as f:
-                            send_photo(chat_id, f)
-                        logger.info("Get price of %s", coin_code)
-                    except Exception as e:
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text=f"Create chart failed with error: {e}, {type(e)}",
-                        )
-                elif text.startswith("/aoc"):
-                    try:
-                        _cmd, topn = text.split(" ", 1)
-                        topn = int(topn)
-                    except Exception:
-                        topn = 10
-                    send_message(session=S, chat_id=chat_id, text=aoc21(topn))
-                elif text.startswith("/jo"):
-                    dispatcher.dispatch(text, chat_id, from_id)
+            elif text.startswith("/ji "):
+                _cam, keyword = text.split(" ", 1)
 
-                elif text.startswith("/cron "):
-                    dispatcher.dispatch(text, chat_id, from_id)
+                try:
+                    result = jp_dict.search_jisho(keyword)
+                    url, ipa, meanings = (
+                        result["url"],
+                        result["reading"],
+                        result["means"],
+                    )
+                except Exception:
+                    logger.exception(keyword)
+                else:
+                    msg = fit_meanings_to_message(url, meanings)
+                    send_message(
+                        session=S,
+                        chat_id=chat_id,
+                        text=f"Jisho result for `{keyword}`\nReading: {ipa}\n" + msg,
+                    )
+                    logger.info("Jisho: served ji keyword %s", keyword)
 
-                elif text.startswith("/ji "):
-                    _cam, keyword = text.split(" ", 1)
-
-                    try:
-                        result = jp_dict.search_jisho(keyword)
-                        url, ipa, meanings = (
-                            result["url"],
-                            result["reading"],
-                            result["means"],
-                        )
-                    except Exception:
-                        logger.exception(keyword)
-                    else:
-                        msg = fit_meanings_to_message(url, meanings)
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text=f"Jisho result for `{keyword}`\nReading: {ipa}\n"
-                            + msg,
-                        )
-                        logger.info("Jisho: served ji keyword %s", keyword)
-
-                with open(OFFSET_FILE, "w") as f:
-                    f.write(str(update_id))
-
-
+            with open(OFFSET_FILE, "w") as f:
+                f.write(str(update_id))
 
 
 if __name__ == "__main__":
