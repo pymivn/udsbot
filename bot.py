@@ -11,6 +11,7 @@ import random
 import requests
 import uds
 import jp_dict
+import cronjob
 
 
 logging.basicConfig(level=logging.INFO)
@@ -279,9 +280,119 @@ def kanji(grade=2, nth=-1):
 
     return "{}: {}\n{}\n{}".format(k.char, k.meaning, k.reading, k.url)
 
+class Dispatcher():
+    def __init__(self, session):
+        self.session = session
 
-def main():
-    with requests.Session() as S:
+    def dispatch_uds(self, text, chat_id, from_id):
+        _uds, keyword = text.split(" ", 1)
+
+        try:
+            result = uds.urbandictionary(keyword)
+            url, meanings = result["url"], result["means"]
+
+        except Exception:
+            logger.exception(keyword)
+        else:
+            msg = fit_meanings_to_message(url, meanings)
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"UrbanDictionary result for `{keyword}`\n" + msg,
+            )
+            logger.info("UDS: served keyword %s", keyword)
+
+
+    def dispatch_cam(self, text, chat_id, from_id):
+        _cam, keyword = text.split(" ", 1)
+
+        try:
+            result = uds.cambridge(keyword)
+            url, ipa, meanings = (
+                result["url"],
+                result["ipa"],
+                result["means"],
+            )
+        except Exception:
+            logger.exception(keyword)
+        else:
+            msg = fit_meanings_to_message(url, meanings)
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
+                + msg,
+            )
+            logger.info("UDS: served cam keyword %s", keyword)
+
+
+
+    def dispatch_hi(self, text, chat_id, from_id):
+        if not API_TEMP:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
+            )
+        else:
+            cities = ["Yokohama", "Ho Chi Minh", "Hanoi"]
+            temp_cities = get_temp(cities)
+            for temp in temp_cities:
+                send_message(
+                    session=self.session,
+                    chat_id=chat_id,
+                    text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
+                )
+                logger.info("Temp: served city %s", temp["name"])
+            city = "jp&hcm&hn"
+            location, value, utime = get_aqi_jp()
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"PM2.5 {value} at {location} at {utime}",
+            )
+            location, value, utime = get_aqi_hcm()
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"PM2.5 {value} at {location} at {utime}",
+            )
+            location, value, utime = get_aqi_hanoi()
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"PM2.5 {value} at {location} at {utime}",
+            )
+            logger.info("AQI: served city %s", city)
+
+    def dispatch_jo(self, text, chat_id, from_id):
+        parts = text.split(" ")
+        if len(parts) == 2:
+            grade = parts[1]
+            nth = -1
+        elif len(parts) == 3:
+            _cmd, grade, nth = parts
+            nth = -1
+        else:
+            grade = 3
+            nth = -1
+            logger.info("Get joyo kanji grade: %d #%d", grade, nth)
+        send_message(
+            session=self.session, chat_id=chat_id, text=kanji(grade, int(nth))
+        )
+
+    def dispatch_cron(self, text, chat_id, from_id):
+        cronjob.add_job(text, chat_id, from_id)
+
+    def dispatch(self, text, chat_id, from_id):
+        cmd, *_ = text.split()
+        pure_cmd = cmd.strip().lstrip("/")
+        func = getattr(self, f"dispatch_{pure_cmd}", print)
+        logger.info(f"dispatching {func.__name__} from {text}")
+        func(text, chat_id, from_id)
+
+
+def fetch_message_and_process():
         try:
             with open(OFFSET_FILE) as f:
                 offset = int(f.read().strip())
@@ -311,48 +422,17 @@ def main():
                 continue
             if "text" in message:
                 chat_id = r["message"]["chat"]["id"]
+                from_id = r["message"]["from"]["id"]
                 text = r["message"]["text"].strip()
+                logger.info("Processing %s from %s in chat %s",
+                        text, from_id, chat_id)
+                dispatcher = Dispatcher(session=S)
 
                 if text.startswith("/uds "):
-                    _uds, keyword = text.split(" ", 1)
-
-                    try:
-                        result = uds.urbandictionary(keyword)
-                        url, meanings = result["url"], result["means"]
-
-                    except Exception:
-                        logger.exception(keyword)
-                    else:
-                        msg = fit_meanings_to_message(url, meanings)
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text=f"UrbanDictionary result for `{keyword}`\n" + msg,
-                        )
-                        logger.info("UDS: served keyword %s", keyword)
+                    dispatcher.dispatch(text, chat_id, from_id)
 
                 elif text.startswith("/cam "):
-                    _cam, keyword = text.split(" ", 1)
-
-                    try:
-                        result = uds.cambridge(keyword)
-                        url, ipa, meanings = (
-                            result["url"],
-                            result["ipa"],
-                            result["means"],
-                        )
-                    except Exception:
-                        logger.exception(keyword)
-                    else:
-                        msg = fit_meanings_to_message(url, meanings)
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n"
-                            + msg,
-                        )
-                        logger.info("UDS: served cam keyword %s", keyword)
-
+                    dispatcher.dispatch(text, chat_id, from_id)
                 elif text.startswith("/fr "):
                     _cam, keyword = text.split(" ", 1)
 
@@ -417,43 +497,7 @@ def main():
                             )
                             logger.info("Temp: served city %s", temp["name"])
                 elif text.startswith("/hi"):
-                    if not API_TEMP:
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
-                        )
-                    else:
-                        cities = ["Yokohama", "Ho Chi Minh", "Hanoi"]
-                        temp_cities = get_temp(cities)
-                        for temp in temp_cities:
-                            send_message(
-                                session=S,
-                                chat_id=chat_id,
-                                text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
-                            )
-                            logger.info("Temp: served city %s", temp["name"])
-                        city = "jp&hcm&hn"
-                        location, value, utime = get_aqi_jp()
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text=f"PM2.5 {value} at {location} at {utime}",
-                        )
-                        location, value, utime = get_aqi_hcm()
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text=f"PM2.5 {value} at {location} at {utime}",
-                        )
-                        location, value, utime = get_aqi_hanoi()
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text=f"PM2.5 {value} at {location} at {utime}",
-                        )
-                        logger.info("AQI: served city %s", city)
-
+                    dispatcher.dispatch(text, chat_id, from_id)
                 elif text.startswith("/btc"):
                     try:
                         code = text.split(" ")[1].lower()
@@ -512,20 +556,10 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                         topn = 10
                     send_message(session=S, chat_id=chat_id, text=aoc21(topn))
                 elif text.startswith("/jo"):
-                    parts = text.split(" ")
-                    if len(parts) == 2:
-                        grade = parts[1]
-                        nth = -1
-                    elif len(parts) == 3:
-                        _cmd, grade, nth = parts
-                        nth = -1
-                    else:
-                        grade = 3
-                        nth = -1
-                        logger.info("Get joyo kanji grade: %d #%d", grade, nth)
-                    send_message(
-                        session=S, chat_id=chat_id, text=kanji(grade, int(nth))
-                    )
+                    dispatcher.dispatch(text, chat_id, from_id)
+
+                elif text.startswith("/cron "):
+                    dispatcher.dispatch(text, chat_id, from_id)
 
                 elif text.startswith("/ji "):
                     _cam, keyword = text.split(" ", 1)
@@ -553,7 +587,12 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                     f.write(str(update_id))
 
 
+
+
 if __name__ == "__main__":
     while True:
-        main()
-        time.sleep(60)
+        with requests.Session() as S:
+            fetch_message_and_process()
+            dispatcher = Dispatcher(session=S)
+            cronjob.run_cron(dispatcher.dispatch)
+            time.sleep(60)
