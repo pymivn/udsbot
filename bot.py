@@ -552,9 +552,8 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
                 with open(OFFSET_FILE, "w") as f:
                     f.write(str(update_id))
 
-    time.sleep(30)
-
 
 if __name__ == "__main__":
     while True:
         main()
+        time.sleep(60)
