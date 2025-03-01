@@ -598,4 +598,4 @@ if __name__ == "__main__":
             fetch_message_and_process(session=S)
             dispatcher = Dispatcher(session=S)
             cronjob.run_cron(dispatcher.dispatch)
-            time.sleep(10)
+            time.sleep(60)
