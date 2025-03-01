@@ -90,6 +90,8 @@ def _get_coin_name(code):
             ("bnb", "binancecoin"),
             ("ada", "cardano"),
             ("doge", "dogecoin"),
+            ("sol", "solana"),
+            ("xrm", "monero"),
             ("xrp", "xrp"),
             ("ltc", "litecoin"),
             ("link", "chainlink"),
@@ -379,6 +381,149 @@ class Dispatcher:
             logger.info("Get joyo kanji grade: %d #%d", grade, nth)
         send_message(session=self.session, chat_id=chat_id, text=kanji(grade, int(nth)))
 
+    def dispatch_fr(self, text, chat_id, from_id):
+        _cam, keyword = text.split(" ", 1)
+
+        try:
+            result = uds.cambridge_fr(keyword)
+            url, ipa, meanings = (
+                result["url"],
+                result["ipa"],
+                result["means"],
+            )
+        except Exception:
+            logger.exception(keyword)
+        else:
+            msg = fit_meanings_to_message(url, meanings)
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
+            )
+            logger.info("UDS: served camfr keyword %s", keyword)
+
+    def dispatch_ji(self, text, chat_id, from_id):
+        _cam, keyword = text.split(" ", 1)
+
+        try:
+            result = jp_dict.search_jisho(keyword)
+            url, ipa, meanings = (
+                result["url"],
+                result["reading"],
+                result["means"],
+            )
+        except Exception:
+            logger.exception(keyword)
+        else:
+            msg = fit_meanings_to_message(url, meanings)
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"Jisho result for `{keyword}`\nReading: {ipa}\n" + msg,
+            )
+            logger.info("Jisho: served ji keyword %s", keyword)
+
+    def dispatch_aqi(self, text, chat_id, from_id):
+        city = "hn&hcm&jp"
+        location, value, utime = get_aqi_hanoi()
+        send_message(
+            session=self.session,
+            chat_id=chat_id,
+            text=f"PM2.5 {value} at {location} at {utime}",
+        )
+
+        location, value, utime = get_aqi_hcm()
+        send_message(
+            session=self.session,
+            chat_id=chat_id,
+            text=f"PM2.5 {value} at {location} at {utime}",
+        )
+        location, value, utime = get_aqi_jp()
+        send_message(
+            session=self.session,
+            chat_id=chat_id,
+            text=f"PM2.5 {value} at {location} at {utime}",
+        )
+        logger.info("AQI: served city %s", city)
+
+    def dispatch_tem(self, text, chat_id, from_id):
+        if not API_TEMP:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
+            )
+        else:
+            cities = ["Yokohama", "Ho Chi Minh"]
+            temp_cities = get_temp(cities)
+            for temp in temp_cities:
+                send_message(
+                    session=self.session,
+                    chat_id=chat_id,
+                    text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
+                )
+                logger.info("Temp: served city %s", temp["name"])
+
+    def dispatch_btc(self, text, chat_id, from_id):
+        try:
+            code = text.split(" ")[1].lower()
+        except IndexError:
+            code = "btc"
+
+        try:
+            coin_code = _get_coin_name(code)
+        except KeyError:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
+            )
+        else:
+            prices_data = get_price_btc(coin_code)
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"""{coin_code.upper()} ${prices_data[coin_code]['usd']}
+    Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
+    24h {round(prices_data[coin_code]['usd_24h_change'],1)}% """,
+            )
+
+    def dispatch_c(self, text, chat_id, from_id):
+        try:
+            code = text.split(" ")[1].lower()
+        except IndexError:
+            code = "btc"
+
+        try:
+            coin_code = _get_coin_name(code)
+        except KeyError:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
+            )
+
+        try:
+            create_chart(coin_code)
+            imgfile = "/tmp/chartimage.png"
+            with open(imgfile, "rb") as f:
+                send_photo(chat_id, f)
+            logger.info("Get price of %s", coin_code)
+        except Exception as e:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"Create chart failed with error: {e}, {type(e)}",
+            )
+
+    def dispatch_aoc(self, text, chat_id, from_id):
+        try:
+            _cmd, topn = text.split(" ", 1)
+            topn = int(topn)
+        except Exception:
+            topn = 10
+        send_message(session=self.session, chat_id=chat_id, text=aoc21(topn))
+
     def dispatch_cron(self, text, chat_id, from_id):
         cronjob.add_job(text, chat_id, from_id)
 
@@ -390,7 +535,7 @@ class Dispatcher:
         func(text, chat_id, from_id)
 
 
-def fetch_message_and_process():
+def fetch_message_and_process(session):
     try:
         with open(OFFSET_FILE) as f:
             offset = int(f.read().strip())
@@ -398,7 +543,7 @@ def fetch_message_and_process():
     except IOError:
         params = None
 
-    resp = S.get(base + "getUpdates", json=params, timeout=20)
+    resp = session.get(base + "getUpdates", json=params, timeout=20)
     d = resp.json()
 
     try:
@@ -423,160 +568,25 @@ def fetch_message_and_process():
             from_id = r["message"]["from"]["id"]
             text = r["message"]["text"].strip()
             logger.info("Processing %s from %s in chat %s", text, from_id, chat_id)
-            dispatcher = Dispatcher(session=S)
+            dispatcher = Dispatcher(session=session)
 
-            if text.startswith("/uds "):
-                dispatcher.dispatch(text, chat_id, from_id)
-
-            elif text.startswith("/cam "):
-                dispatcher.dispatch(text, chat_id, from_id)
-            elif text.startswith("/fr "):
-                _cam, keyword = text.split(" ", 1)
-
-                try:
-                    result = uds.cambridge_fr(keyword)
-                    url, ipa, meanings = (
-                        result["url"],
-                        result["ipa"],
-                        result["means"],
-                    )
-                except Exception:
-                    logger.exception(keyword)
-                else:
-                    msg = fit_meanings_to_message(url, meanings)
-                    send_message(
-                        session=S,
-                        chat_id=chat_id,
-                        text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
-                    )
-                    logger.info("UDS: served camfr keyword %s", keyword)
-
-            elif text.startswith("/aqi"):
-                # _aqi, city = text.split(" ", 1)
-                city = "hn&hcm&jp"
-                location, value, utime = get_aqi_hanoi()
-                send_message(
-                    session=S,
-                    chat_id=chat_id,
-                    text=f"PM2.5 {value} at {location} at {utime}",
+            if text.startswith(
+                (
+                    "/uds ",
+                    "/cam ",
+                    "/fr ",
+                    "/aqi",
+                    "/tem",
+                    "/hi",
+                    "/btc",
+                    "/c ",
+                    "/aoc",
+                    "/jo",
+                    "/cron ",
+                    "/ji ",
                 )
-
-                location, value, utime = get_aqi_hcm()
-                send_message(
-                    session=S,
-                    chat_id=chat_id,
-                    text=f"PM2.5 {value} at {location} at {utime}",
-                )
-                location, value, utime = get_aqi_jp()
-                send_message(
-                    session=S,
-                    chat_id=chat_id,
-                    text=f"PM2.5 {value} at {location} at {utime}",
-                )
-                logger.info("AQI: served city %s", city)
-
-            elif text.startswith("/tem"):
-                if not API_TEMP:
-                    send_message(
-                        session=S,
-                        chat_id=chat_id,
-                        text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
-                    )
-                else:
-                    cities = ["Yokohama", "Ho Chi Minh"]
-                    temp_cities = get_temp(cities)
-                    for temp in temp_cities:
-                        send_message(
-                            session=S,
-                            chat_id=chat_id,
-                            text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
-                        )
-                        logger.info("Temp: served city %s", temp["name"])
-            elif text.startswith("/hi"):
+            ):
                 dispatcher.dispatch(text, chat_id, from_id)
-            elif text.startswith("/btc"):
-                try:
-                    code = text.split(" ")[1].lower()
-                except IndexError:
-                    code = "btc"
-
-                try:
-                    coin_code = _get_coin_name(code)
-                except KeyError:
-                    send_message(
-                        session=S,
-                        chat_id=chat_id,
-                        text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
-                    )
-                prices_data = get_price_btc(coin_code)
-                send_message(
-                    session=S,
-                    chat_id=chat_id,
-                    text=f"""{coin_code.upper()} ${prices_data[coin_code]['usd']}
-Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
-24h {round(prices_data[coin_code]['usd_24h_change'],1)}% """,
-                )
-
-            elif text == "/c" or text.startswith("/c "):
-                try:
-                    code = text.split(" ")[1].lower()
-                except IndexError:
-                    code = "btc"
-
-                try:
-                    coin_code = _get_coin_name(code)
-                except KeyError:
-                    send_message(
-                        session=S,
-                        chat_id=chat_id,
-                        text="Try coin in list:[btc, eth, usdt, bnb, ada, doge, xrp, ltc, link, xlm]",
-                    )
-
-                try:
-                    create_chart(coin_code)
-                    imgfile = "/tmp/chartimage.png"
-                    with open(imgfile, "rb") as f:
-                        send_photo(chat_id, f)
-                    logger.info("Get price of %s", coin_code)
-                except Exception as e:
-                    send_message(
-                        session=S,
-                        chat_id=chat_id,
-                        text=f"Create chart failed with error: {e}, {type(e)}",
-                    )
-            elif text.startswith("/aoc"):
-                try:
-                    _cmd, topn = text.split(" ", 1)
-                    topn = int(topn)
-                except Exception:
-                    topn = 10
-                send_message(session=S, chat_id=chat_id, text=aoc21(topn))
-            elif text.startswith("/jo"):
-                dispatcher.dispatch(text, chat_id, from_id)
-
-            elif text.startswith("/cron "):
-                dispatcher.dispatch(text, chat_id, from_id)
-
-            elif text.startswith("/ji "):
-                _cam, keyword = text.split(" ", 1)
-
-                try:
-                    result = jp_dict.search_jisho(keyword)
-                    url, ipa, meanings = (
-                        result["url"],
-                        result["reading"],
-                        result["means"],
-                    )
-                except Exception:
-                    logger.exception(keyword)
-                else:
-                    msg = fit_meanings_to_message(url, meanings)
-                    send_message(
-                        session=S,
-                        chat_id=chat_id,
-                        text=f"Jisho result for `{keyword}`\nReading: {ipa}\n" + msg,
-                    )
-                    logger.info("Jisho: served ji keyword %s", keyword)
 
             with open(OFFSET_FILE, "w") as f:
                 f.write(str(update_id))
@@ -585,7 +595,7 @@ Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
 if __name__ == "__main__":
     while True:
         with requests.Session() as S:
-            fetch_message_and_process()
+            fetch_message_and_process(session=S)
             dispatcher = Dispatcher(session=S)
             cronjob.run_cron(dispatcher.dispatch)
-            time.sleep(60)
+            time.sleep(10)
