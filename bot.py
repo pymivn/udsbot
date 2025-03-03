@@ -525,7 +525,36 @@ class Dispatcher:
         send_message(session=self.session, chat_id=chat_id, text=aoc21(topn))
 
     def dispatch_cron(self, text, chat_id, from_id):
-        cronjob.add_job(text, chat_id, from_id)
+        try:
+            cronjob.add_job(text, chat_id, from_id)
+        except Exception as e:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"Add cron job failed with error: {e}, {type(e)}",
+            )
+        else:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"Cron job added successfully! To delete this job: /delcron {chat_id}",
+            )
+
+    def dispatch_delcron(self, text, chat_id, from_id):
+        try:
+            cronjob.del_job(text, chat_id, from_id)
+        except Exception as e:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"Delete cron job failed with error: {e}, {type(e)}",
+            )
+        else:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"Cron job deleted successfully!",
+            )
 
     def dispatch(self, text, chat_id, from_id):
         cmd, *_ = text.split()
