@@ -199,22 +199,27 @@ def get_temp(cities):
 
 
 def get_price_btc(coin="bitcoin"):
-    # only get btc_price
-    # resp = requests.get("https://api.coindesk.com/v1/bpi/currentprice.json").json()
-    # btc_price = "".join(resp["bpi"]["USD"]["rate"].split(".")[0].split(","))
-    # return btc_price
-    from pycoingecko import CoinGeckoAPI
-
-    cg = CoinGeckoAPI()
-    data = cg.get_price(
-        ids=coin,
-        vs_currencies="usd",
-        include_market_cap=True,
-        include_24hr_vol=True,
-        include_24hr_change=True,
-        include_last_updated_at=True,
-    )
-    return data
+    """
+    Fetches the current Bitcoin price in USD, market cap, and 24-hour price change from the CoinGecko API.
+    Returns the data as a JSON object.
+    """
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd&include_market_cap=true&include_24hr_change=true"
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error for bad responses (4xx and 5xx)
+        data = response.json()
+        
+        # Extract Bitcoin price, market cap, and 24-hour change
+        btc_data = {
+            "price_usd": data[coin]["usd"],
+            "market_cap_usd": data[coin]["usd_market_cap"],
+            "change_24h_percent": data[coin]["usd_24h_change"]
+        }
+        
+        return btc_data   
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
 
 
 def create_chart(coin="bitcoin"):
@@ -483,9 +488,9 @@ class Dispatcher:
             send_message(
                 session=self.session,
                 chat_id=chat_id,
-                text=f"""{coin_code.upper()} ${prices_data[coin_code]['usd']}
-    Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
-    24h {round(prices_data[coin_code]['usd_24h_change'],1)}% """,
+                text=f"""{coin_code.upper()} ${prices_data["price_usd"]}
+    Cap ${round(prices_data["market_cap_usd"]/1000000000,1)}B
+    24h {round(prices_data["change_24h_percent"],1)}% """,
             )
 
     def dispatch_c(self, text, chat_id, from_id):
