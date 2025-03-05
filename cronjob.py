@@ -7,6 +7,7 @@ CRON_JOBS_FILE = "cronjobs.json"
 OWNERS_WHITELIST: list[int] = [
     int(i) for i in os.environ.get("OWNERS_WHITELIST", "").replace(",", " ").split()
 ]
+MAX_JOBS_PER_OWNER = 10
 
 
 @dataclass
@@ -26,10 +27,6 @@ def parse_job(text: str) -> (str, int, int):
 
 
 def add_job(text: str, chat_id: int, owner: int) -> bool:
-    if owner not in OWNERS_WHITELIST:
-        print(f"IGNORE cron add as {owner} not in OWNERS_WHITELIST")
-        return False
-
     command, hour, minute = parse_job(text)
 
     try:
@@ -37,6 +34,10 @@ def add_job(text: str, chat_id: int, owner: int) -> bool:
             jobs = json.load(f)
     except FileNotFoundError:
         jobs = []
+
+    count_jobs_by_owner = len([job for job in jobs if job["owner"] == owner])
+    if count_jobs_by_owner >= MAX_JOBS_PER_OWNER:
+        raise Exception(f"IGNORE cron add as {owner} has reached max jobs")
 
     with open(CRON_JOBS_FILE, "w") as f:
         jobs.append(
@@ -48,6 +49,28 @@ def add_job(text: str, chat_id: int, owner: int) -> bool:
                 "command": command,
             }
         )
+        json.dump(jobs, f)
+    return True
+
+
+def del_job(text: str, chat_id: int, owner: int) -> bool:
+    command, hour, minute = parse_job(text)
+
+    try:
+        with open(CRON_JOBS_FILE, "r") as f:
+            jobs = json.load(f)
+    except FileNotFoundError:
+        jobs = []
+    with open(CRON_JOBS_FILE, "w") as f:
+        jobs = [
+            j
+            for j in jobs
+            if not (
+                hour == j["hour"]
+                and minute == j["minute"]
+                and command == j["command"]
+            )
+        ]
         json.dump(jobs, f)
     return True
 
