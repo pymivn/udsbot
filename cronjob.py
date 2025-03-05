@@ -26,19 +26,7 @@ def parse_job(text: str) -> (str, int, int):
     return cmd, int(hour), int(minute)
 
 
-def count_jobs_by_owner(owner: int) -> int:
-    try:
-        with open(CRON_JOBS_FILE, "r") as f:
-            jobs = json.load(f)
-    except FileNotFoundError:
-        return 0
-    return len([job for job in jobs if job["owner"] == owner])
-
-
 def add_job(text: str, chat_id: int, owner: int) -> bool:
-    if count_jobs_by_owner(owner) >= MAX_JOBS_PER_OWNER:
-        raise Exception(f"IGNORE cron add as {owner} has reached max jobs")
-
     command, hour, minute = parse_job(text)
 
     try:
@@ -46,6 +34,10 @@ def add_job(text: str, chat_id: int, owner: int) -> bool:
             jobs = json.load(f)
     except FileNotFoundError:
         jobs = []
+
+    count_jobs_by_owner = len([job for job in jobs if job["owner"] == owner])
+    if count_jobs_by_owner >= MAX_JOBS_PER_OWNER:
+        raise Exception(f"IGNORE cron add as {owner} has reached max jobs")
 
     with open(CRON_JOBS_FILE, "w") as f:
         jobs.append(
