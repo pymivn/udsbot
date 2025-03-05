@@ -36,10 +36,7 @@ def count_jobs_by_owner(owner: int) -> int:
 
 
 def add_job(text: str, chat_id: int, owner: int) -> bool:
-    if owner not in OWNERS_WHITELIST:
-        raise Exception(f"IGNORE cron add as {owner} not in OWNERS_WHITELIST")
-
-    if count_jobs_by_owner(owner) > MAX_JOBS_PER_OWNER:
+    if count_jobs_by_owner(owner) >= MAX_JOBS_PER_OWNER:
         raise Exception(f"IGNORE cron add as {owner} has reached max jobs")
 
     command, hour, minute = parse_job(text)
@@ -65,7 +62,7 @@ def add_job(text: str, chat_id: int, owner: int) -> bool:
 
 
 def del_job(text: str, chat_id: int, owner: int) -> bool:
-    del_job_chat_id = int(text.split()[1])
+    command, hour, minute = parse_job(text)
 
     try:
         with open(CRON_JOBS_FILE, "r") as f:
@@ -77,7 +74,9 @@ def del_job(text: str, chat_id: int, owner: int) -> bool:
             j
             for j in jobs
             if not (
-                chat_id and chat_id == j["del_job_chat_id"] and owner and owner == j["owner"]
+                hour == j["hour"]
+                and minute == j["minute"]
+                and command == j["command"]
             )
         ]
         json.dump(jobs, f)

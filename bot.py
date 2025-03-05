@@ -537,7 +537,7 @@ class Dispatcher:
             send_message(
                 session=self.session,
                 chat_id=chat_id,
-                text=f"Cron job added successfully! To delete this job: /delcron {chat_id}",
+                text=f"Cron job added successfully! To delete this job: {text.replace('/cron', '/delcron')}",
             )
 
     def dispatch_delcron(self, text, chat_id, from_id):
