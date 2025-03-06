@@ -565,6 +565,9 @@ class Dispatcher:
         cmd, *_ = text.split()
         pure_cmd = cmd.strip().lstrip("/")
         func = getattr(self, f"dispatch_{pure_cmd}", print)
+        if func is None:
+            logger.warn(f"dispatch_{pure_cmd} method not exist, skip from {text}")
+            return
         logger.info(f"dispatching {func.__name__} from {text}")
         func(text, chat_id, from_id)
 
@@ -603,24 +606,7 @@ def fetch_message_and_process(session):
             text = r["message"]["text"].strip()
             logger.info("Processing %s from %s in chat %s", text, from_id, chat_id)
             dispatcher = Dispatcher(session=session)
-
-            if text.startswith(
-                (
-                    "/uds ",
-                    "/cam ",
-                    "/fr ",
-                    "/aqi",
-                    "/tem",
-                    "/hi",
-                    "/btc",
-                    "/c ",
-                    "/aoc",
-                    "/jo",
-                    "/cron ",
-                    "/ji ",
-                )
-            ):
-                dispatcher.dispatch(text, chat_id, from_id)
+            dispatcher.dispatch(text, chat_id, from_id)
 
             with open(OFFSET_FILE, "w") as f:
                 f.write(str(update_id))
