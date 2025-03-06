@@ -66,9 +66,7 @@ def del_job(text: str, chat_id: int, owner: int) -> bool:
             j
             for j in jobs
             if not (
-                hour == j["hour"]
-                and minute == j["minute"]
-                and command == j["command"]
+                hour == j["hour"] and minute == j["minute"] and command == j["command"]
             )
         ]
         json.dump(jobs, f)
