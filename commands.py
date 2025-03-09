@@ -522,7 +522,7 @@ class Dispatcher:
 
     def dispatch_cron(self, text, chat_id, from_id):
         try:
-            cronjob.add_job(text, chat_id, from_id)
+            job_uuid = cronjob.add_job(text, chat_id, from_id)
         except Exception as e:
             send_message(
                 session=self.session,
@@ -533,7 +533,7 @@ class Dispatcher:
             send_message(
                 session=self.session,
                 chat_id=chat_id,
-                text=f"Cron job added successfully! To delete this job: {text.replace('/cron', '/delcron')}",
+                text=f"Cron job added successfully! To delete this job: /delcron {job_uuid}",
             )
 
     def dispatch_delcron(self, text, chat_id, from_id):
@@ -550,6 +550,23 @@ class Dispatcher:
                 session=self.session,
                 chat_id=chat_id,
                 text="Cron job deleted successfully!",
+            )
+
+    def dispatch_listcron(self, text, chat_id, from_id):
+        try:
+            jobs = cronjob.list_jobs(text, chat_id, from_id)
+        except Exception as e:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"List cron jobs failed with error: {e}, {type(e)}",
+            )
+        else:
+            jobs_str = "\n".join([f"{job['uuid']} - {job['hour']}:{job['minute']} {job['command']}" for job in jobs])
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=jobs_str,
             )
 
     def dispatch(self, text, chat_id, from_id):
