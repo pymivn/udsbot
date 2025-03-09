@@ -168,7 +168,7 @@ def fit_meanings_to_message(url, meanings):
 
         if len(meaning) > EACH_MEANING_LIMIT:
             meaning = f"{meaning[:EACH_MEANING_LIMIT]}..."
-        msg = f"{idx+1}. {meaning}"
+        msg = f"{idx + 1}. {meaning}"
         result.append(msg)
     result.append(url)
     return "\n".join(result)
@@ -479,9 +479,9 @@ class Dispatcher:
             send_message(
                 session=self.session,
                 chat_id=chat_id,
-                text=f"""{coin_code.upper()} ${prices_data[coin_code]['usd']}
-    Cap ${round(prices_data[coin_code]['usd_market_cap']/1000000000,1)}B
-    24h {round(prices_data[coin_code]['usd_24h_change'],1)}% """,
+                text=f"""{coin_code.upper()} ${prices_data[coin_code]["usd"]}
+    Cap ${round(prices_data[coin_code]["usd_market_cap"] / 1000000000, 1)}B
+    24h {round(prices_data[coin_code]["usd_24h_change"], 1)}% """,
             )
 
     def dispatch_c(self, text, chat_id, from_id):
@@ -562,7 +562,12 @@ class Dispatcher:
                 text=f"List cron jobs failed with error: {e}, {type(e)}",
             )
         else:
-            jobs_str = "\n".join([f"{job['uuid']} - {job['hour']}:{job['minute']} {job['command']}" for job in jobs])
+            jobs_str = "\n".join(
+                [
+                    f"{job['uuid']} - {job['hour']}:{job['minute']} {job['command']}"
+                    for job in jobs
+                ]
+            )
             send_message(
                 session=self.session,
                 chat_id=chat_id,
