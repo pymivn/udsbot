@@ -3,6 +3,7 @@ import json
 import datetime
 import uuid
 from dataclasses import dataclass
+from typing import List, Dict
 
 CRON_JOBS_FILE = "cronjobs.json"
 OWNERS_WHITELIST: list[int] = [
@@ -66,15 +67,10 @@ def del_job(text: str, chat_id: int, owner: int) -> bool:
     except FileNotFoundError:
         jobs = []
     with open(CRON_JOBS_FILE, "w") as f:
-        jobs = [
-            j
-            for j in jobs
-            if not (
-                job_uuid == j["uuid"] and owner == j["owner"]
-            )
-        ]
+        jobs = [j for j in jobs if not (job_uuid == j["uuid"] and owner == j["owner"])]
         json.dump(jobs, f)
     return True
+
 
 def list_job(text: str, chat_id: int, owner: int) -> List[Dict]:
     try:
@@ -82,9 +78,8 @@ def list_job(text: str, chat_id: int, owner: int) -> List[Dict]:
             jobs = json.load(f)
     except FileNotFoundError:
         jobs = []
-    return [
-        j for j in jobs if owner == j["owner"]
-    ]
+    return [j for j in jobs if owner == j["owner"]]
+
 
 def add_uuid(text: str, chat_id: int, owner: int) -> int:
     try:
@@ -95,13 +90,14 @@ def add_uuid(text: str, chat_id: int, owner: int) -> int:
 
     count = 0
     for i in len(jobs):
-        if j[i].get('uuid', '') == '':
-            j[i]["uuid"] = uuid.uuid4()
+        if jobs[i].get("uuid", "") == "":
+            jobs[i]["uuid"] = uuid.uuid4()
             count += 1
-    
+
     with open(CRON_JOBS_FILE, "w") as f:
         json.dump(jobs, f)
     return count
+
 
 def run_cron(dispatch_func):
     try:
