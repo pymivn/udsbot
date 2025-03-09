@@ -40,7 +40,7 @@ def add_job(text: str, chat_id: int, owner: int) -> str:
     if count_jobs_by_owner >= MAX_JOBS_PER_OWNER:
         raise Exception(f"IGNORE cron add as {owner} has reached max jobs")
 
-    job_uuid = uuid.uuid4()
+    job_uuid = str(uuid.uuid4())
 
     with open(CRON_JOBS_FILE, "w") as f:
         jobs.append(
@@ -54,7 +54,7 @@ def add_job(text: str, chat_id: int, owner: int) -> str:
             }
         )
         json.dump(jobs, f)
-    return str(job_uuid)
+    return job_uuid
 
 
 def del_job(text: str, chat_id: int, owner: int) -> bool:
@@ -90,7 +90,7 @@ def add_uuid(text: str, chat_id: int, owner: int) -> int:
     count = 0
     for job in jobs:
         if job.get("uuid", "") == "":
-            job["uuid"] = uuid.uuid4()
+            job["uuid"] = str(uuid.uuid4())
             count += 1
 
     with open(CRON_JOBS_FILE, "w") as f:
