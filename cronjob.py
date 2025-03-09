@@ -89,8 +89,8 @@ def add_uuid(text: str, chat_id: int, owner: int) -> int:
 
     count = 0
     for job in jobs:
-        if jobs.get("uuid", "") == "":
-            jobs["uuid"] = uuid.uuid4()
+        if job.get("uuid", "") == "":
+            job["uuid"] = uuid.uuid4()
             count += 1
 
     with open(CRON_JOBS_FILE, "w") as f:
