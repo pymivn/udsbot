@@ -70,7 +70,7 @@ def del_job(text: str, chat_id: int, owner: int) -> bool:
             j
             for j in jobs
             if not (
-                job_uuid == j["job_uuid"] and owner == j["owner"]
+                job_uuid == j["uuid"] and owner == j["owner"]
             )
         ]
         json.dump(jobs, f)
@@ -86,6 +86,22 @@ def list_job(text: str, chat_id: int, owner: int) -> List[Dict]:
         j for j in jobs if owner == j["owner"]
     ]
 
+def add_uuid(text: str, chat_id: int, owner: int) -> int:
+    try:
+        with open(CRON_JOBS_FILE, "r") as f:
+            jobs = json.load(f)
+    except FileNotFoundError:
+        jobs = []
+
+    count = 0
+    for i in len(jobs):
+        if j[i].get('uuid', '') == '':
+            j[i]["uuid"] = uuid.uuid4()
+            count += 1
+    
+    with open(CRON_JOBS_FILE, "w") as f:
+        json.dump(jobs, f)
+    return count
 
 def run_cron(dispatch_func):
     try:
