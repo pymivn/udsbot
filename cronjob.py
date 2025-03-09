@@ -3,7 +3,6 @@ import json
 import datetime
 import uuid
 from dataclasses import dataclass
-from typing import List, Dict
 
 CRON_JOBS_FILE = "cronjobs.json"
 OWNERS_WHITELIST: list[int] = [
@@ -72,7 +71,7 @@ def del_job(text: str, chat_id: int, owner: int) -> bool:
     return True
 
 
-def list_job(text: str, chat_id: int, owner: int) -> List[Dict]:
+def list_job(text: str, chat_id: int, owner: int) -> list(dict):
     try:
         with open(CRON_JOBS_FILE, "r") as f:
             jobs = json.load(f)
@@ -89,9 +88,9 @@ def add_uuid(text: str, chat_id: int, owner: int) -> int:
         jobs = []
 
     count = 0
-    for i in len(jobs):
-        if jobs[i].get("uuid", "") == "":
-            jobs[i]["uuid"] = uuid.uuid4()
+    for job in jobs:
+        if jobs.get("uuid", "") == "":
+            jobs["uuid"] = uuid.uuid4()
             count += 1
 
     with open(CRON_JOBS_FILE, "w") as f:
