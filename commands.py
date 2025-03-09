@@ -102,7 +102,7 @@ def get_aqi_hanoi():
     )
     locs = resp.json()
     for i in locs:
-        if "US Embassy" in i["city"]:
+        if "BVMT" in i["city"]:
             us_embassy = i
             break
     return us_embassy["city"], us_embassy["aqi"], us_embassy["utime"]
