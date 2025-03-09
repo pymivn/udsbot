@@ -20,7 +20,7 @@ class Job:
     command: str
 
 
-def parse_job(text: str) -> (str, int, int):
+def parse_job(text: str) -> tuple[str, int, int]:
     # 13:45 jo
     _cron, hm, cmd = text.split()
     hour, minute = hm.split(":")
@@ -54,7 +54,7 @@ def add_job(text: str, chat_id: int, owner: int) -> str:
             }
         )
         json.dump(jobs, f)
-    return job_uuid
+    return str(job_uuid)
 
 
 def del_job(text: str, chat_id: int, owner: int) -> bool:
@@ -71,7 +71,7 @@ def del_job(text: str, chat_id: int, owner: int) -> bool:
     return True
 
 
-def list_job(text: str, chat_id: int, owner: int) -> list(dict):
+def list_job(text: str, chat_id: int, owner: int) -> list[dict]:
     try:
         with open(CRON_JOBS_FILE, "r") as f:
             jobs = json.load(f)
