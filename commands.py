@@ -554,7 +554,7 @@ class Dispatcher:
 
     def dispatch_listcron(self, text, chat_id, from_id):
         try:
-            jobs = cronjob.list_jobs(text, chat_id, from_id)
+            jobs = cronjob.list_job(text, chat_id, from_id)
         except Exception as e:
             send_message(
                 session=self.session,
@@ -573,22 +573,7 @@ class Dispatcher:
                 chat_id=chat_id,
                 text=jobs_str,
             )
-
-    def dispatch_adduuid(self, text, chat_id, from_id):
-        try:
-            result = cronjob.add_uuid(text, chat_id, from_id)
-        except Exception as e:
-            send_message(
-                session=self.session,
-                chat_id=chat_id,
-                text=f"Add UUID to cron job failed with error: {e}, {type(e)}",
-            )
-        else:
-            send_message(
-                session=self.session,
-                chat_id=chat_id,
-                text=f"Add UUID to {result} cron job(s) successfully",
-            )
+            
 
     def dispatch(self, text, chat_id, from_id):
         cmd, *_ = text.split()
