@@ -13,6 +13,7 @@ MAX_JOBS_PER_OWNER = 10
 
 @dataclass
 class Job:
+    uuid: str
     chat_id: str
     owner: str
     hour: int
@@ -33,7 +34,7 @@ def add_job(text: str, chat_id: int, owner: int) -> str:
     try:
         with open(CRON_JOBS_FILE, "r") as f:
             jobs = json.load(f)
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         jobs = []
 
     count_jobs_by_owner = len([job for job in jobs if job["owner"] == owner])
@@ -63,7 +64,7 @@ def del_job(text: str, chat_id: int, owner: int) -> bool:
     try:
         with open(CRON_JOBS_FILE, "r") as f:
             jobs = json.load(f)
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         jobs = []
     with open(CRON_JOBS_FILE, "w") as f:
         jobs = [j for j in jobs if not (job_uuid == j["uuid"] and owner == j["owner"])]
@@ -75,34 +76,16 @@ def list_job(text: str, chat_id: int, owner: int) -> list[dict]:
     try:
         with open(CRON_JOBS_FILE, "r") as f:
             jobs = json.load(f)
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         jobs = []
     return [j for j in jobs if owner == j["owner"]]
-
-
-def add_uuid(text: str, chat_id: int, owner: int) -> int:
-    try:
-        with open(CRON_JOBS_FILE, "r") as f:
-            jobs = json.load(f)
-    except FileNotFoundError:
-        jobs = []
-
-    count = 0
-    for job in jobs:
-        if job.get("uuid", "") == "":
-            job["uuid"] = str(uuid.uuid4())
-            count += 1
-
-    with open(CRON_JOBS_FILE, "w") as f:
-        json.dump(jobs, f)
-    return count
 
 
 def run_cron(dispatch_func):
     try:
         with open(CRON_JOBS_FILE) as f:
             jobs = json.load(f)
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         jobs = []
 
     now = datetime.datetime.utcnow()
