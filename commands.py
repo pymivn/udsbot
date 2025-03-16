@@ -5,6 +5,7 @@ import time
 import datetime
 import hashlib
 import random
+from typing import MutableMapping, BinaryIO, cast
 
 import requests
 import uds
@@ -29,8 +30,11 @@ db = jp_dict.init_kanji_db(dbpath)
 kanji_service = jp_dict.KanjiService(db)
 
 
-def aoc21(topn=10):
+def aoc21(topn: int = 10) -> str:
     cookies = {"session": AOC_SESSION}
+
+    if not isinstance(AOC_SESSION, str):
+        raise ValueError("AOC_SESSION must be a non-empty string")
 
     h = hashlib.sha256(AOC_SESSION.encode("utf-8")).hexdigest()
     datafile = f"/tmp/uds_aoc_{h}"
@@ -53,10 +57,18 @@ def aoc21(topn=10):
     if not d:
         timestamp = datetime.datetime.now().strftime("%Y%m%d %H:%M")
         logger.info("AOC: Getting newest data")
+
+        # Filter out None values
+        cookies = {key: value for key, value in cookies.items() if value is not None}
+        # Cast to the expected type that requests.get() requires
+        typed_cookies: MutableMapping[str, str] = cast(
+            MutableMapping[str, str], cookies
+        )
         r = requests.get(
             "https://adventofcode.com/2024/leaderboard/private/view/416592.json",
-            cookies=cookies,
+            cookies=typed_cookies,
         )
+
         d = r.json()
         with open(datafile, "wt") as f:
             json.dump(d, f)
@@ -77,7 +89,7 @@ def aoc21(topn=10):
     return f"AoC PyMi At {timestamp}UTC - refresh each 15m\n" + "\n".join(lines)
 
 
-def _get_coin_name(code):
+def _get_coin_name(code: str) -> str:
     return dict(
         [
             ("btc", "bitcoin"),
@@ -96,7 +108,7 @@ def _get_coin_name(code):
     )[code]
 
 
-def get_aqi_hanoi():
+def get_aqi_hanoi() -> tuple:
     resp = requests.get(
         "https://api.waqi.info/mapq/bounds/?bounds=20.96111901161895,105.75405120849611,21.09571147652958,105.91609954833986"
     )
@@ -108,7 +120,7 @@ def get_aqi_hanoi():
     return us_embassy["city"], us_embassy["aqi"], us_embassy["utime"]
 
 
-def get_aqi_hcm():
+def get_aqi_hcm() -> tuple:
     url = "https://airnet.waqi.info/airnet/map/bounds"
     data = {
         "bounds": "106.65545867915007,10.773554342818551,106.71194267422896,10.788963661784884",
@@ -131,7 +143,7 @@ def get_aqi_hcm():
     return us_embassy["n"], us_embassy["a"], us_embassy["utime"]
 
 
-def get_aqi_jp():
+def get_aqi_jp() -> tuple:
     resp = requests.get(
         "https://api.waqi.info/mapq/bounds/?bounds=35.2002957,139.2889003,35.4002958,139.5889103"
     )
@@ -142,7 +154,7 @@ def get_aqi_jp():
     return us_embassy["city"], us_embassy["aqi"], us_embassy["utime"]
 
 
-def send_message(session, chat_id, text="hi"):
+def send_message(session: requests.Session, chat_id: int, text: str = "hi") -> None:
     msg = {
         "chat_id": chat_id,
         "text": text,
@@ -150,7 +162,7 @@ def send_message(session, chat_id, text="hi"):
     session.post(config.TELEGRAM_BASE_URL + "sendMessage", json=msg, timeout=10)
 
 
-def send_photo(chat_id, file_opened):
+def send_photo(chat_id: int, file_opened: BinaryIO) -> requests.Response:
     method = "sendPhoto"
     params = {"chat_id": chat_id}
     files = {"photo": file_opened}
@@ -158,7 +170,7 @@ def send_photo(chat_id, file_opened):
     return resp
 
 
-def fit_meanings_to_message(url, meanings):
+def fit_meanings_to_message(url: str, meanings: list) -> str:
     result = []
     EACH_MEANING_LIMIT = 160
     for idx, meaning in enumerate(meanings):
@@ -174,7 +186,7 @@ def fit_meanings_to_message(url, meanings):
     return "\n".join(result)
 
 
-def get_temp(cities):
+def get_temp(cities: list) -> list:
     results = []
     for city in cities:
         data_temp = requests.get(
@@ -194,7 +206,7 @@ def get_temp(cities):
     return results
 
 
-def get_price_btc(coin="bitcoin"):
+def get_price_btc(coin: str = "bitcoin") -> dict:
     # only get btc_price
     # resp = requests.get("https://api.coindesk.com/v1/bpi/currentprice.json").json()
     # btc_price = "".join(resp["bpi"]["USD"]["rate"].split(".")[0].split(","))
@@ -213,7 +225,7 @@ def get_price_btc(coin="bitcoin"):
     return data
 
 
-def create_chart(coin="bitcoin"):
+def create_chart(coin: str = "bitcoin") -> None:
     import pandas as pd
     import plotly.graph_objects as go
 
@@ -237,16 +249,15 @@ def create_chart(coin="bitcoin"):
         columns=["Timestamp", "Price"],
     )
 
-    df.index = pd.to_datetime(df["Timestamp"], unit="ms")
+    df.index = pd.to_datetime(df["Timestamp"], unit="ms")  # type: ignore
+    df["date"] = df.index.date  # type: ignore
 
     analyzed = pd.DataFrame()
-    analyzed["High"] = df.groupby(df.index.date).max("Price")["Price"]
-    analyzed["Low"] = df.groupby(df.index.date).min("Price")["Price"]
-    analyzed["Date"] = df.groupby(df.index.date).max("Price").index
-    analyzed["Open_Timestamp"] = df.groupby(df.index.date).min("Timestamp")["Timestamp"]
-    analyzed["Close_Timestamp"] = df.groupby(df.index.date).max("Timestamp")[
-        "Timestamp"
-    ]
+    analyzed["High"] = df.groupby("date")["Price"].max()
+    analyzed["Low"] = df.groupby("date")["Price"].min()
+    analyzed["Date"] = df.groupby("date").max()["Price"].index
+    analyzed["Open_Timestamp"] = df.groupby("date")["Timestamp"].min()
+    analyzed["Close_Timestamp"] = df.groupby("date")["Timestamp"].max()
     analyzed["Open"] = analyzed.apply(opents2price, axis=1)
     analyzed["Close"] = analyzed.apply(closets2price, axis=1)
 
@@ -274,7 +285,7 @@ def create_chart(coin="bitcoin"):
     fig.write_image("/tmp/chartimage.png")
 
 
-def kanji(grade=2, nth=-1):
+def kanji(grade: int = 2, nth: int = -1) -> str:
     if nth == -1:
         nth = random.randrange(jp_dict.NUMBER_OF_YOJO_WORDS)
     k = kanji_service.get_kanji(grade=grade, nth=nth)
@@ -283,10 +294,10 @@ def kanji(grade=2, nth=-1):
 
 
 class Dispatcher:
-    def __init__(self, session):
+    def __init__(self, session: requests.Session) -> None:
         self.session = session
 
-    def dispatch_uds(self, text, chat_id, from_id):
+    def dispatch_uds(self, text: str, chat_id: int, from_id: int) -> None:
         _uds, keyword = text.split(" ", 1)
 
         try:
@@ -304,7 +315,7 @@ class Dispatcher:
             )
             logger.info("UDS: served keyword %s", keyword)
 
-    def dispatch_cam(self, text, chat_id, from_id):
+    def dispatch_cam(self, text: str, chat_id: int, from_id: int) -> None:
         _cam, keyword = text.split(" ", 1)
 
         try:
@@ -325,7 +336,7 @@ class Dispatcher:
             )
             logger.info("UDS: served cam keyword %s", keyword)
 
-    def dispatch_hi(self, text, chat_id, from_id):
+    def dispatch_hi(self, text: str, chat_id: int, from_id: int) -> None:
         if not API_TEMP:
             send_message(
                 session=self.session,
@@ -363,21 +374,25 @@ class Dispatcher:
             )
             logger.info("AQI: served city %s", city)
 
-    def dispatch_jo(self, text, chat_id, from_id):
+    def dispatch_jo(self, text: str, chat_id: int, from_id: int) -> None:
         parts = text.split(" ")
         if len(parts) == 2:
-            grade = parts[1]
+            grade = int(parts[1])  # Convert to int
             nth = -1
         elif len(parts) == 3:
-            _cmd, grade, nth = parts
-            nth = -1
+            _cmd, grade_str, nth_str = parts
+            grade = int(grade_str)  # Convert to int
+            try:
+                nth = int(nth_str)
+            except ValueError:
+                nth = -1
         else:
             grade = 3
             nth = -1
             logger.info("Get joyo kanji grade: %d #%d", grade, nth)
         send_message(session=self.session, chat_id=chat_id, text=kanji(grade, int(nth)))
 
-    def dispatch_fr(self, text, chat_id, from_id):
+    def dispatch_fr(self, text: str, chat_id: int, from_id: int) -> None:
         _cam, keyword = text.split(" ", 1)
 
         try:
@@ -398,7 +413,7 @@ class Dispatcher:
             )
             logger.info("UDS: served camfr keyword %s", keyword)
 
-    def dispatch_ji(self, text, chat_id, from_id):
+    def dispatch_ji(self, text: str, chat_id: int, from_id: int) -> None:
         _cam, keyword = text.split(" ", 1)
 
         try:
@@ -419,7 +434,7 @@ class Dispatcher:
             )
             logger.info("Jisho: served ji keyword %s", keyword)
 
-    def dispatch_aqi(self, text, chat_id, from_id):
+    def dispatch_aqi(self, text: str, chat_id: int, from_id: int) -> None:
         city = "hn&hcm&jp"
         location, value, utime = get_aqi_hanoi()
         send_message(
@@ -442,7 +457,7 @@ class Dispatcher:
         )
         logger.info("AQI: served city %s", city)
 
-    def dispatch_tem(self, text, chat_id, from_id):
+    def dispatch_tem(self, text: str, chat_id: int, from_id: int) -> None:
         if not API_TEMP:
             send_message(
                 session=self.session,
@@ -460,7 +475,7 @@ class Dispatcher:
                 )
                 logger.info("Temp: served city %s", temp["name"])
 
-    def dispatch_btc(self, text, chat_id, from_id):
+    def dispatch_btc(self, text: str, chat_id: int, from_id: int) -> None:
         try:
             code = text.split(" ")[1].lower()
         except IndexError:
@@ -484,7 +499,7 @@ class Dispatcher:
     24h {round(prices_data[coin_code]["usd_24h_change"], 1)}% """,
             )
 
-    def dispatch_c(self, text, chat_id, from_id):
+    def dispatch_c(self, text: str, chat_id: int, from_id: int) -> None:
         try:
             code = text.split(" ")[1].lower()
         except IndexError:
@@ -512,15 +527,15 @@ class Dispatcher:
                 text=f"Create chart failed with error: {e}, {type(e)}",
             )
 
-    def dispatch_aoc(self, text, chat_id, from_id):
+    def dispatch_aoc(self, text: str, chat_id: int, from_id: int) -> None:
         try:
-            _cmd, topn = text.split(" ", 1)
-            topn = int(topn)
+            _cmd, topn_str = text.split(" ", 1)
+            topn = int(topn_str)
         except Exception:
             topn = 10
         send_message(session=self.session, chat_id=chat_id, text=aoc21(topn))
 
-    def dispatch_cron(self, text, chat_id, from_id):
+    def dispatch_cron(self, text: str, chat_id: int, from_id: int) -> None:
         try:
             job_uuid = cronjob.add_job(text, chat_id, from_id)
         except Exception as e:
@@ -536,7 +551,7 @@ class Dispatcher:
                 text=f"Cron job added successfully! To delete this job: /delcron {job_uuid}",
             )
 
-    def dispatch_delcron(self, text, chat_id, from_id):
+    def dispatch_delcron(self, text: str, chat_id: int, from_id: int) -> None:
         try:
             cronjob.del_job(text, chat_id, from_id)
         except Exception as e:
@@ -552,7 +567,7 @@ class Dispatcher:
                 text="Cron job deleted successfully!",
             )
 
-    def dispatch_listcron(self, text, chat_id, from_id):
+    def dispatch_listcron(self, text: str, chat_id: int, from_id: int) -> None:
         try:
             jobs = cronjob.list_job(text, chat_id, from_id)
         except Exception as e:
@@ -573,9 +588,8 @@ class Dispatcher:
                 chat_id=chat_id,
                 text=jobs_str,
             )
-            
 
-    def dispatch(self, text, chat_id, from_id):
+    def dispatch(self, text: str, chat_id: int, from_id: int) -> None:
         cmd, *_ = text.split()
         pure_cmd = cmd.strip().lstrip("/")
         func = getattr(self, f"dispatch_{pure_cmd}", print)
