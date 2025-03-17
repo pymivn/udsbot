@@ -133,3 +133,6 @@ chartimage.png
 
 #Ruff
 .ruff_cache
+
+#Cronjob
+cronjobs.json

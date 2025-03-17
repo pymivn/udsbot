@@ -14,7 +14,7 @@ DELAY = 10
 NUMBER_OF_YOJO_WORDS = 2136
 
 
-def search_jisho(word):
+def search_jisho(word: str) -> dict:
     resp = requests.get(f"https://jisho.org/api/v1/search/words?keyword={word}").json()
     data = resp["data"]
     for result in data:
@@ -35,7 +35,7 @@ def search_jisho(word):
     return {"url": "", "reading": "", "means": ""}
 
 
-def fetch_jisho_grade_words(grade=1):
+def fetch_jisho_grade_words(grade: int = 1):
     sess = requests_html.HTMLSession()
 
     page = 1
@@ -54,7 +54,7 @@ def fetch_jisho_grade_words(grade=1):
         time.sleep(DELAY)
 
 
-def get_a_node(node) -> dict:
+def get_a_node(node: requests_html.Element) -> dict:
     kanji, meaning, *kun_on = node.text.splitlines()[3:]
     e = node.xpath("//a")[0]
     url = e.attrs["href"].strip("/")
@@ -66,10 +66,10 @@ def get_a_node(node) -> dict:
     }
 
 
-def init_kanji_db(dbpath):
+def init_kanji_db(dbpath: str) -> sqlite3.Connection:
     if os.path.exists(dbpath):
-        print("dbpath already exists, skip")
-        return
+        conn = sqlite3.connect(dbpath)
+        return conn
 
     json_path = os.path.join(os.path.dirname(__file__), "joyo_final.json")
     ws = json.load(open(json_path))
@@ -93,7 +93,7 @@ def init_kanji_db(dbpath):
     return conn
 
 
-def get_db(dbpath):
+def get_db(dbpath: str) -> sqlite3.Connection:
     return sqlite3.connect(dbpath)
 
 
@@ -115,7 +115,7 @@ class KanjiService:
             self.db.execute("SELECT grade, count(*) from kanji_chars group by grade")
         )
 
-    def get_kanji(self, grade=2, nth=1) -> Kanji:
+    def get_kanji(self, grade: int = 2, nth: int = 1) -> Kanji:
         grades_chars = self.chars_count_by_grade()
         if str(grade) not in grades_chars:
             grade = 2
@@ -152,8 +152,8 @@ def main() -> None:
     # filter duplicate and remove words not in joyo
     # https://en.wikipedia.org/wiki/Kanji#Total_number_of_kanji
     d = json.load(open("joyo.json"))
-    words = set()
-    r = {}
+    words: set = set()
+    r: dict = {}
     r = {k: [] for k in d}
     for k, v in d.items():
         for i in v:
