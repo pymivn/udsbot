@@ -5,5 +5,4 @@ fmt:
 	ruff check *.py
 
 mypy:
-	mypy --install-types
-	mypy --ignore-missing-import *.py
+	mypy --install-types --ignore-missing-import *.py
