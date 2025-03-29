@@ -25,5 +25,11 @@ jobs:
         python3 -m pip install ruff mypy
         if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
         
-    - name: Run quality checks
-      run: make all
+    - name: Run code formatting
+      run: make fmt
+      
+    - name: Run type checking
+      run: make mypy
+      
+    - name: Run tests
+      run: make test

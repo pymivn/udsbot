@@ -1,4 +1,4 @@
-all: fmt mypy
+all: fmt mypy test
 
 fmt:
 	ruff format *.py
@@ -6,3 +6,6 @@ fmt:
 
 mypy:
 	mypy --install-types --non-interactive --ignore-missing-imports *.py
+
+test:
+	python3 -m unittest
