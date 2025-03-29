@@ -88,7 +88,7 @@ def run_cron(dispatch_func):
     except (FileNotFoundError, json.JSONDecodeError):
         jobs = []
 
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.UTC)
     for j in jobs:
         job = Job(**j)
         if job.command.split()[0].lstrip("/") == "cron":
