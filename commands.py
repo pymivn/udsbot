@@ -578,10 +578,7 @@ class Dispatcher:
             )
         else:
             jobs_str = "\n".join(
-                [
-                    f"{job['uuid']} - {job['hour']}:{job['minute']} {job['command']}"
-                    for job in jobs
-                ]
+                [f"{job.uuid} - {job.hour}:{job.minute} {job.command}" for job in jobs]
             )
             send_message(
                 session=self.session,
