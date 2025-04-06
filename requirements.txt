@@ -4,5 +4,4 @@ numpy
 pandas
 matplotlib
 plotly
-kaleido
 pyyaml
