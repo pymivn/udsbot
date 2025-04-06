@@ -7,9 +7,9 @@ import sqlite3
 import json
 import tempfile
 import shutil
+import yaml
 
 # Import the module to test
-import cronjob
 from cronjob import (
     parse_job,
     add_job,
@@ -49,11 +49,11 @@ class TestParseJob(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Invalid job format"):
             parse_job("/cron 1345 test command")
         with self.assertRaisesRegex(ValueError, "Invalid job format"):
-            parse_job("/cron 13:45") # Missing command
+            parse_job("/cron 13:45")  # Missing command
         with self.assertRaisesRegex(ValueError, "Invalid job format"):
-            parse_job("cron 13:45 test command") # Missing /
+            parse_job("cron 13:45 test command")  # Missing /
         with self.assertRaisesRegex(ValueError, "Invalid job format"):
-            parse_job("/cron test command") # Missing time
+            parse_job("/cron test command")  # Missing time
 
     def test_invalid_time(self):
         """Test parsing job strings with invalid times."""
@@ -77,7 +77,7 @@ class TestSQLStorage(unittest.TestCase):
         # Ensure clean state
         if os.path.exists(self.db_file):
             os.remove(self.db_file)
-        self.storage.init_db() # Initialize schema
+        self.storage.init_db()  # Initialize schema
 
     def tearDown(self):
         """Remove the temporary database file and directory."""
@@ -88,7 +88,9 @@ class TestSQLStorage(unittest.TestCase):
         # Check if table exists
         with sqlite3.connect(self.db_file) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='jobs';")
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='jobs';"
+            )
             self.assertIsNotNone(cursor.fetchone())
 
     def test_add_and_list_job(self):
@@ -114,7 +116,9 @@ class TestSQLStorage(unittest.TestCase):
 
         # Try adding one more
         with self.assertRaises(MaxJobsReachedError):
-            self.storage.add_job(str(uuid.uuid4()), 123, owner_id, 12, 0, "command_over_limit")
+            self.storage.add_job(
+                str(uuid.uuid4()), 123, owner_id, 12, 0, "command_over_limit"
+            )
 
         # Verify count
         jobs = self.storage.list_jobs(owner_id)
@@ -133,7 +137,7 @@ class TestSQLStorage(unittest.TestCase):
         deleted = self.storage.del_job(job_uuid1, owner1)
         self.assertTrue(deleted)
         self.assertEqual(len(self.storage.list_jobs(owner1)), 0)
-        self.assertEqual(len(self.storage.list_jobs(owner2)), 1) # Owner2's job remains
+        self.assertEqual(len(self.storage.list_jobs(owner2)), 1)  # Owner2's job remains
 
         # Try deleting already deleted job
         deleted_again = self.storage.del_job(job_uuid1, owner1)
@@ -142,7 +146,9 @@ class TestSQLStorage(unittest.TestCase):
         # Try deleting job belonging to another owner
         deleted_wrong_owner = self.storage.del_job(job_uuid2, owner1)
         self.assertFalse(deleted_wrong_owner)
-        self.assertEqual(len(self.storage.list_jobs(owner2)), 1) # Owner2's job still remains
+        self.assertEqual(
+            len(self.storage.list_jobs(owner2)), 1
+        )  # Owner2's job still remains
 
     def test_get_due_jobs(self):
         """Test retrieving jobs due at a specific time."""
@@ -174,7 +180,7 @@ class TestJSONStorage(unittest.TestCase):
         # Ensure clean state
         if os.path.exists(self.json_file):
             os.remove(self.json_file)
-        self.storage.init_db() # Initialize file
+        self.storage.init_db()  # Initialize file
 
     def tearDown(self):
         """Remove the temporary JSON file and directory."""
@@ -183,17 +189,17 @@ class TestJSONStorage(unittest.TestCase):
     def test_init_db_creates_file(self):
         """Test if init_db creates the JSON file with an empty list."""
         self.assertTrue(os.path.exists(self.json_file))
-        with open(self.json_file, 'r') as f:
+        with open(self.json_file, "r") as f:
             content = json.load(f)
             self.assertEqual(content, [])
 
     def test_init_db_existing_file(self):
         """Test init_db doesn't overwrite an existing valid JSON file."""
         initial_data = [{"test": "data"}]
-        with open(self.json_file, 'w') as f:
+        with open(self.json_file, "w") as f:
             json.dump(initial_data, f)
-        self.storage.init_db() # Should not raise error or clear file
-        with open(self.json_file, 'r') as f:
+        self.storage.init_db()  # Should not raise error or clear file
+        with open(self.json_file, "r") as f:
             content = json.load(f)
             self.assertEqual(content, initial_data)
 
@@ -220,7 +226,9 @@ class TestJSONStorage(unittest.TestCase):
 
         # Try adding one more
         with self.assertRaises(MaxJobsReachedError):
-            self.storage.add_job(str(uuid.uuid4()), 123, owner_id, 12, 0, "command_over_limit")
+            self.storage.add_job(
+                str(uuid.uuid4()), 123, owner_id, 12, 0, "command_over_limit"
+            )
 
         # Verify count
         jobs = self.storage.list_jobs(owner_id)
@@ -239,7 +247,7 @@ class TestJSONStorage(unittest.TestCase):
         deleted = self.storage.del_job(job_uuid1, owner1)
         self.assertTrue(deleted)
         self.assertEqual(len(self.storage.list_jobs(owner1)), 0)
-        self.assertEqual(len(self.storage.list_jobs(owner2)), 1) # Owner2's job remains
+        self.assertEqual(len(self.storage.list_jobs(owner2)), 1)  # Owner2's job remains
 
         # Try deleting already deleted job
         deleted_again = self.storage.del_job(job_uuid1, owner1)
@@ -248,7 +256,9 @@ class TestJSONStorage(unittest.TestCase):
         # Try deleting job belonging to another owner
         deleted_wrong_owner = self.storage.del_job(job_uuid2, owner1)
         self.assertFalse(deleted_wrong_owner)
-        self.assertEqual(len(self.storage.list_jobs(owner2)), 1) # Owner2's job still remains
+        self.assertEqual(
+            len(self.storage.list_jobs(owner2)), 1
+        )  # Owner2's job still remains
 
     def test_get_due_jobs(self):
         """Test retrieving jobs due at a specific time."""
@@ -270,14 +280,14 @@ class TestJSONStorage(unittest.TestCase):
 
 
 # Patch the storage instance used by the cronjob module functions
-@patch('cronjob.storage', new_callable=MagicMock)
+@patch("cronjob.storage", new_callable=MagicMock)
 class TestCronJobLogic(unittest.TestCase):
     """Tests for the core cronjob logic (add, del, list, run) with mocked storage."""
 
     def test_add_job_success(self, mock_storage):
         """Test successful job addition."""
         test_uuid = "test-uuid-123"
-        with patch('uuid.uuid4', return_value=test_uuid):
+        with patch("uuid.uuid4", return_value=test_uuid):
             result_uuid = add_job("/cron 10:30 test command", 123, 456)
 
         self.assertEqual(result_uuid, test_uuid)
@@ -295,8 +305,8 @@ class TestCronJobLogic(unittest.TestCase):
         """Test add_job handling storage errors (MaxJobsReachedError)."""
         mock_storage.add_job.side_effect = MaxJobsReachedError("Limit reached")
         with self.assertRaises(MaxJobsReachedError):
-             add_job("/cron 11:00 another command", 123, 456)
-        mock_storage.add_job.assert_called_once() # Ensure it was called
+            add_job("/cron 11:00 another command", 123, 456)
+        mock_storage.add_job.assert_called_once()  # Ensure it was called
 
     def test_del_job_success(self, mock_storage):
         """Test successful job deletion."""
@@ -315,16 +325,30 @@ class TestCronJobLogic(unittest.TestCase):
     def test_del_job_invalid_format(self, mock_storage):
         """Test del_job handling invalid command format."""
         with self.assertRaisesRegex(ValueError, "Invalid delete format"):
-            del_job("/delcron", 123, 456) # Missing UUID
+            del_job("/delcron", 123, 456)  # Missing UUID
         with self.assertRaisesRegex(ValueError, "Invalid delete format"):
-            del_job("/delcron ", 123, 456) # Missing UUID (space only)
+            del_job("/delcron ", 123, 456)  # Missing UUID (space only)
         mock_storage.del_job.assert_not_called()
 
     def test_list_job_success(self, mock_storage):
         """Test listing jobs successfully."""
         mock_job_data = [
-            {"uuid": "uuid1", "chat_id": 123, "owner": 456, "hour": 10, "minute": 0, "command": "cmd1"},
-            {"uuid": "uuid2", "chat_id": 123, "owner": 456, "hour": 11, "minute": 30, "command": "cmd2"},
+            {
+                "uuid": "uuid1",
+                "chat_id": 123,
+                "owner": 456,
+                "hour": 10,
+                "minute": 0,
+                "command": "cmd1",
+            },
+            {
+                "uuid": "uuid2",
+                "chat_id": 123,
+                "owner": 456,
+                "hour": 11,
+                "minute": 30,
+                "command": "cmd2",
+            },
         ]
         mock_storage.list_jobs.return_value = mock_job_data
 
@@ -344,7 +368,7 @@ class TestCronJobLogic(unittest.TestCase):
         self.assertEqual(len(result_jobs), 0)
         mock_storage.list_jobs.assert_called_once_with(789)
 
-    @patch('datetime.datetime')
+    @patch("datetime.datetime")
     def test_run_cron_dispatch(self, mock_datetime, mock_storage):
         """Test run_cron dispatches due jobs."""
         # Mock time
@@ -352,12 +376,26 @@ class TestCronJobLogic(unittest.TestCase):
         mock_now.hour = 14
         mock_now.minute = 30
         mock_datetime.now.return_value = mock_now
-        mock_datetime.UTC = datetime.UTC # Ensure UTC is available
+        mock_datetime.UTC = datetime.UTC  # Ensure UTC is available
 
         # Mock storage response
         mock_due_jobs_data = [
-            {"uuid": "uuid1", "chat_id": 100, "owner": 200, "hour": 14, "minute": 30, "command": "do_task_1"},
-            {"uuid": "uuid2", "chat_id": 101, "owner": 201, "hour": 14, "minute": 30, "command": "do_task_2"},
+            {
+                "uuid": "uuid1",
+                "chat_id": 100,
+                "owner": 200,
+                "hour": 14,
+                "minute": 30,
+                "command": "do_task_1",
+            },
+            {
+                "uuid": "uuid2",
+                "chat_id": 101,
+                "owner": 201,
+                "hour": 14,
+                "minute": 30,
+                "command": "do_task_2",
+            },
         ]
         mock_storage.get_due_jobs.return_value = mock_due_jobs_data
 
@@ -370,12 +408,15 @@ class TestCronJobLogic(unittest.TestCase):
         # Assertions
         mock_storage.get_due_jobs.assert_called_once_with(14, 30)
         self.assertEqual(mock_dispatch.call_count, 2)
-        mock_dispatch.assert_has_calls([
-            call("do_task_1", 100, 200),
-            call("do_task_2", 101, 201),
-        ], any_order=True) # Order isn't guaranteed
+        mock_dispatch.assert_has_calls(
+            [
+                call("do_task_1", 100, 200),
+                call("do_task_2", 101, 201),
+            ],
+            any_order=True,
+        )  # Order isn't guaranteed
 
-    @patch('datetime.datetime')
+    @patch("datetime.datetime")
     def test_run_cron_no_due_jobs(self, mock_datetime, mock_storage):
         """Test run_cron when no jobs are due."""
         mock_now = MagicMock()
@@ -392,7 +433,7 @@ class TestCronJobLogic(unittest.TestCase):
         mock_storage.get_due_jobs.assert_called_once_with(15, 00)
         mock_dispatch.assert_not_called()
 
-    @patch('datetime.datetime')
+    @patch("datetime.datetime")
     def test_run_cron_skips_management_commands(self, mock_datetime, mock_storage):
         """Test run_cron skips jobs whose command is a management command."""
         mock_now = MagicMock()
@@ -402,10 +443,38 @@ class TestCronJobLogic(unittest.TestCase):
         mock_datetime.UTC = datetime.UTC
 
         mock_due_jobs_data = [
-            {"uuid": "uuid1", "chat_id": 100, "owner": 200, "hour": 16, "minute": 0, "command": "/cron 17:00 other_task"},
-            {"uuid": "uuid2", "chat_id": 101, "owner": 201, "hour": 16, "minute": 0, "command": "actual_task"},
-            {"uuid": "uuid3", "chat_id": 102, "owner": 202, "hour": 16, "minute": 0, "command": "/delcron some_uuid"},
-            {"uuid": "uuid4", "chat_id": 103, "owner": 203, "hour": 16, "minute": 0, "command": " listcron"}, # Space before command
+            {
+                "uuid": "uuid1",
+                "chat_id": 100,
+                "owner": 200,
+                "hour": 16,
+                "minute": 0,
+                "command": "/cron 17:00 other_task",
+            },
+            {
+                "uuid": "uuid2",
+                "chat_id": 101,
+                "owner": 201,
+                "hour": 16,
+                "minute": 0,
+                "command": "actual_task",
+            },
+            {
+                "uuid": "uuid3",
+                "chat_id": 102,
+                "owner": 202,
+                "hour": 16,
+                "minute": 0,
+                "command": "/delcron some_uuid",
+            },
+            {
+                "uuid": "uuid4",
+                "chat_id": 103,
+                "owner": 203,
+                "hour": 16,
+                "minute": 0,
+                "command": " listcron",
+            },  # Space before command
         ]
         mock_storage.get_due_jobs.return_value = mock_due_jobs_data
         mock_dispatch = MagicMock()
@@ -416,7 +485,7 @@ class TestCronJobLogic(unittest.TestCase):
         # Only 'actual_task' should be dispatched
         mock_dispatch.assert_called_once_with("actual_task", 101, 201)
 
-    @patch('datetime.datetime')
+    @patch("datetime.datetime")
     def test_run_cron_handles_empty_command(self, mock_datetime, mock_storage):
         """Test run_cron handles jobs with empty commands gracefully."""
         mock_now = MagicMock()
@@ -426,16 +495,30 @@ class TestCronJobLogic(unittest.TestCase):
         mock_datetime.UTC = datetime.UTC
 
         mock_due_jobs_data = [
-            {"uuid": "uuid1", "chat_id": 100, "owner": 200, "hour": 17, "minute": 0, "command": ""},
-            {"uuid": "uuid2", "chat_id": 101, "owner": 201, "hour": 17, "minute": 0, "command": "  "}, # Whitespace only
+            {
+                "uuid": "uuid1",
+                "chat_id": 100,
+                "owner": 200,
+                "hour": 17,
+                "minute": 0,
+                "command": "",
+            },
+            {
+                "uuid": "uuid2",
+                "chat_id": 101,
+                "owner": 201,
+                "hour": 17,
+                "minute": 0,
+                "command": "  ",
+            },  # Whitespace only
         ]
         mock_storage.get_due_jobs.return_value = mock_due_jobs_data
         mock_dispatch = MagicMock()
 
-        run_cron(mock_dispatch) # Should not raise an error
+        run_cron(mock_dispatch)  # Should not raise an error
 
         mock_storage.get_due_jobs.assert_called_once_with(17, 00)
-        mock_dispatch.assert_not_called() # No valid commands to dispatch
+        mock_dispatch.assert_not_called()  # No valid commands to dispatch
 
 
 if __name__ == "__main__":
@@ -443,6 +526,15 @@ if __name__ == "__main__":
     # This is a bit of a workaround for the top-level config load in cronjob.py
     if not os.path.exists("config.yaml"):
         with open("config.yaml", "w") as f:
-            yaml.dump({"storage": {"backend": "sql", "sql": {"database_file": "dummy.db"}, "json": {"file_path": "dummy.json"}}}, f)
+            yaml.dump(
+                {
+                    "storage": {
+                        "backend": "sql",
+                        "sql": {"database_file": "dummy.db"},
+                        "json": {"file_path": "dummy.json"},
+                    }
+                },
+                f,
+            )
 
     unittest.main()
