@@ -499,9 +499,9 @@ class Dispatcher:
             send_message(
                 session=self.session,
                 chat_id=chat_id,
-                text=f"""{coin_code.upper()} ${prices_data["usd"]}
-    Cap ${round(prices_data["usd_market_cap"] / 1000000000, 1)}B
-    24h {round(prices_data["usd_24h_change"], 1)}% """,
+                text=f"""{coin_code.upper()} ${prices_data["price_usd"]}
+    Cap ${round(prices_data["market_cap_usd"] / 1000000000, 1)}B
+    24h {round(prices_data["change_24h_percent"], 1)}% """,
             )
 
     def dispatch_c(self, text: str, chat_id: int, from_id: int) -> None:
