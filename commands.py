@@ -211,7 +211,7 @@ def get_price_btc(coin: str = "bitcoin") -> dict:
     Fetches the current Bitcoin price in USD, market cap, and 24-hour price change from the CoinGecko API.
     Returns the data as a JSON object.
     """
-    url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd&include_market_cap=true&in"
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd&include_market_cap=true&include_24hr_change=true"
 
     try:
         response = requests.get(url)
