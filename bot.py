@@ -6,7 +6,7 @@ import requests
 
 import cronjob
 import config
-from commands import Dispatcher
+from commands import Dispatcher, send_message
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
@@ -46,7 +46,12 @@ def fetch_message_and_process(session):
             text = r["message"]["text"].strip()
             logger.info("Processing %s from %s in chat %s", text, from_id, chat_id)
             dispatcher = Dispatcher(session=session)
-            dispatcher.dispatch(text, chat_id, from_id)
+            try:
+                dispatcher.dispatch(text, chat_id, from_id)
+            except Exception as e:
+                send_message(
+                    session, chat_id, "Failed, error: {} {}".format(type(e), e)
+                )
 
             with open(config.OFFSET_FILE, "w") as f:
                 f.write(str(update_id))
