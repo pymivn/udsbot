@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import time
+import traceback
 import logging
 
 import requests
@@ -50,7 +51,11 @@ def fetch_message_and_process(session):
                 dispatcher.dispatch(text, chat_id, from_id)
             except Exception as e:
                 send_message(
-                    session, chat_id, "Failed, error: {} {}".format(type(e), e)
+                    session,
+                    chat_id,
+                    "Failed, error: {} {}: tb: {}".format(
+                        type(e), e, traceback.format_tb(e.__traceback__, limit=1)
+                    ),
                 )
 
             with open(config.OFFSET_FILE, "w") as f:
