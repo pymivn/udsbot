@@ -11,6 +11,7 @@ import requests
 import uds
 import jp_dict
 import cronjob
+import joke
 
 import config
 
@@ -417,6 +418,11 @@ class Dispatcher:
                 text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
             )
             logger.info("UDS: served camfr keyword %s", keyword)
+
+    def dispatch_jk(self, text: str, chat_id: int, from_id: int) -> None:
+        msg = joke.gen_joke()
+        send_message(session=self.session, chat_id=chat_id, text=msg[:300])
+        logger.info("served a joke")
 
     def dispatch_ji(self, text: str, chat_id: int, from_id: int) -> None:
         _cam, keyword = text.split(" ", 1)
