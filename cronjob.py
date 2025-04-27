@@ -10,18 +10,16 @@ from abc import ABC, abstractmethod
 from cronjob_config import Config
 
 # Load and validate config
-with open("config.json", "r") as f:
+with open("config.yaml", "r") as f:
     config_data = yaml.safe_load(f)
     config = Config.model_validate(config_data)
 
 # Now you can access with proper typing
 if config.storage.backend == "sql":
-    db_path = config.storage.database_file
+    DB_FILE = config.storage.database_file
 else:
-    file_path = config.storage.file_path
+    JSON_FILE = config.storage.file_path
 
-DB_FILE = db_path
-JSON_FILE = file_path
 MAX_JOBS_PER_OWNER = 10
 
 
