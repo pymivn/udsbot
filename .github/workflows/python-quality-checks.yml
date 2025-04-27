@@ -25,10 +25,10 @@ jobs:
         uv sync
 
     - name: Run code formatting
-      run: uv make fmt
+      run: uv run make fmt
 
     - name: Run type checking
-      run: uv make mypy
+      run: uv run make mypy
 
     - name: Run tests
-      run: uv make test
+      run: uv run make test
