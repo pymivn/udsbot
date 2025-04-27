@@ -7,9 +7,11 @@ import yaml
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
+from mytypes import Config
+
 # Load config
 with open("config.yaml") as f:
-    config = yaml.safe_load(f)
+    config: Config = yaml.safe_load(f)
 
 DB_FILE = config["storage"]["sql"]["database_file"]
 JSON_FILE = config["storage"]["json"]["file_path"]
