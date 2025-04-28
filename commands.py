@@ -11,7 +11,7 @@ import requests
 import uds
 import jp_dict
 import cronjob
-import joke
+import llm
 
 import config
 
@@ -420,9 +420,15 @@ class Dispatcher:
             logger.info("UDS: served camfr keyword %s", keyword)
 
     def dispatch_jk(self, text: str, chat_id: int, from_id: int) -> None:
-        msg = joke.gen_joke()
+        msg = llm.gen_joke()
         send_message(session=self.session, chat_id=chat_id, text=msg[:300])
         logger.info("served a joke")
+
+    def dispatch_lt(self, text: str, chat_id: int, from_id: int) -> None:
+        _lt, keyword = text.split(" ", 1)
+        msg = llm.translate(keyword)
+        send_message(session=self.session, chat_id=chat_id, text=msg[:300])
+        logger.info(f"LLM translated {text}")
 
     def dispatch_ji(self, text: str, chat_id: int, from_id: int) -> None:
         _cam, keyword = text.split(" ", 1)
