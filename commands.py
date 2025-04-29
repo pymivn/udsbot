@@ -603,6 +603,16 @@ class Dispatcher:
                 text=jobs_str,
             )
 
+    def dispatch_x(self, text: str, chat_id: int, from_id: int) -> None:
+        _x, *cmd = text.split(" ")
+
+        self.dispatch(" ".join(cmd), chat_id, from_id)
+        keyword = " ".join(cmd[1:])
+
+        msg = llm.gen_example(keyword)
+        send_message(session=self.session, chat_id=chat_id, text=msg[:300])
+        logger.info(f"LLM x {text}")
+
     def dispatch(self, text: str, chat_id: int, from_id: int) -> None:
         cmd, *_ = text.split()
         pure_cmd = cmd.strip().lstrip("/")

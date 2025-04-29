@@ -25,3 +25,15 @@ example:""",
     }
     msg = requests.post(url, json=payload).json()["response"]
     return msg
+
+
+def gen_example(word_def: str) -> str:
+    url = "http://localhost:11434/api/generate"
+    payload = {
+        "model": "gemma3:1b",
+        "prompt": f"""given word '{word_def}', create an example using the word, max 100 chars. Just write the example, do not add anything else, use same language the word belong.
+         if input is english, write example in english, if input is japanese, write japanese example""",
+        "stream": False,
+    }
+    msg = requests.post(url, json=payload).json()["response"]
+    return msg
