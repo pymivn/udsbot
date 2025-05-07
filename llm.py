@@ -13,15 +13,13 @@ Requirements:
 
     Detect the input language (English or Japanese) automatically.
 
-    Write the example sentence in the same language as the input word.
+    Write the example sentence in the same language as the input word, and add one more line to translate it to English if input is not English.
 
     Ensure the sentence is correct, natural, and understandable by beginner to intermediate learners.
 
     If the word has multiple meanings, choose the most common or basic meaning unless specified otherwise.
 
     Output only the example sentence, no explanations or extra text.
-
-    Add a line to translate it to English if it is non English
 
 Examples:
 
