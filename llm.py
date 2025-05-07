@@ -13,7 +13,7 @@ Requirements:
 
     Detect the input language (English or Japanese) automatically.
 
-    Write the example sentence in the same language as the input word, and add one more line to translate it to English if input is not English.
+    Write the example sentence in the same language as the input word.
 
     Ensure the sentence is correct, natural, and understandable by beginner to intermediate learners.
 
@@ -56,7 +56,7 @@ example:""",
 def gen_example(word_def: str) -> str:
     payload = {
         "model": MODEL,
-        "prompt": f"""given word '{word_def}', write an example,""",
+        "prompt": word_def,
         "system": SYSTEM_PROMPT_GEN_EXAMPLE,
         "stream": False,
     }
