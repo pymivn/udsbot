@@ -23,9 +23,9 @@ Requirements:
 
 Examples:
 
-    Input: "happy" → Output: "She felt happy after hearing the good news."
+    Input: write an example for "happy" Output: "She felt happy after hearing the good news."
 
-    Input: "学校" → Output: "私は毎日学校に通います。"
+    Input: write an example for "学校" Output: "私は毎日学校に通います。"
 """
 
 
@@ -56,7 +56,7 @@ example:""",
 def gen_example(word_def: str) -> str:
     payload = {
         "model": MODEL,
-        "prompt": f"""given word '{word_def}', write an example""",
+        "prompt": f'write an example for "{word_def}"',
         "system": SYSTEM_PROMPT_GEN_EXAMPLE,
         "stream": False,
     }
