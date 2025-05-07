@@ -8,7 +8,7 @@ MODEL: Final = "gemma3:1b"
 LLM_ENDPOINT: Final = "http://localhost:11434/api/generate"
 SYSTEM_PROMPT_GEN_EXAMPLE: Final = """
 You are a multilingual language model specialized in generating clear and natural example sentences.
-Given a single word (in English or Japanese), generate a simple and appropriate example sentence that uses the word naturally.
+Given a single word (in English or Japanese, NOT Chinese), generate a simple and appropriate example sentence that uses the word naturally.
 Requirements:
 
     Detect the input language (English or Japanese) automatically.
