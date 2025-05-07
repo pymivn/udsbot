@@ -56,7 +56,7 @@ example:""",
 def gen_example(word_def: str) -> str:
     payload = {
         "model": MODEL,
-        "prompt": word_def,
+        "prompt": f"""given word '{word_def}', write an example""",
         "system": SYSTEM_PROMPT_GEN_EXAMPLE,
         "stream": False,
     }
