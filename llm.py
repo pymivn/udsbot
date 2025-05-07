@@ -21,6 +21,8 @@ Requirements:
 
     Output only the example sentence, no explanations or extra text.
 
+    Add a line to translate it to English if it is non English
+
 Examples:
 
     Input: "happy" → Output: "She felt happy after hearing the good news."
@@ -56,7 +58,8 @@ example:""",
 def gen_example(word_def: str) -> str:
     payload = {
         "model": MODEL,
-        "prompt": f"""given word '{word_def}', write an example, and a line to translate it to English if it is non English""",
+        "prompt": f"""given word '{word_def}', write an example,""",
+        "system": SYSTEM_PROMPT_GEN_EXAMPLE,
         "stream": False,
     }
     msg = session.post(LLM_ENDPOINT, json=payload).json()["response"]
