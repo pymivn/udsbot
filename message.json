@@ -1,0 +1,30 @@
+{
+    "update_id": 751100000,
+    "message": {
+        "message_id": 7981,
+        "from": {
+            "id": 163200000,
+            "is_bot": false,
+            "first_name": "first_name",
+            "last_name": "last_name",
+            "username": "username",
+            "language_code": "en"
+        },
+        "chat": {
+            "id": 163200000,
+            "first_name": "first_name",
+            "last_name": "last_name",
+            "username": "username",
+            "type": "private"
+        },
+        "date": 1728558409,
+        "text": "/ji inryou",
+        "entities": [
+            {
+                "offset": 0,
+                "length": 3,
+                "type": "bot_command"
+            }
+        ]
+    }
+}

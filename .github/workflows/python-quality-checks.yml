@@ -1,0 +1,34 @@
+name: Python Quality Checks
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  quality-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python3 -m pip install --upgrade uv
+        uv sync
+
+    - name: Run code formatting
+      run: uv run make fmt
+
+    - name: Run type checking
+      run: uv run make mypy
+
+    - name: Run tests
+      run: uv run make test

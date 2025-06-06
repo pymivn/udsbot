@@ -1,0 +1,6 @@
+storage:
+  backend: "sql"  # Can be "sql" or "json"
+  database_file: "cronjobs.db"
+
+  # backend: "json"
+  # file_path: "cronjobs.json"

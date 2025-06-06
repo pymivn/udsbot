@@ -130,3 +130,10 @@ dmypy.json
 
 # New file
 chartimage.png
+
+#Ruff
+.ruff_cache
+
+#Cronjob
+cronjobs.json
+cronjobs.db

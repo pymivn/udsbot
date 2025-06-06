@@ -1,8 +1,7 @@
 requests
-uds
+git+https://github.com/hvnsweeting/uds@master
 numpy
 pandas
 matplotlib
-pycoingecko
 plotly
-kaleido
+pyyaml
