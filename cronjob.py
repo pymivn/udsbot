@@ -7,12 +7,19 @@ import yaml
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
-# Load config
-with open("config.yaml") as f:
-    config = yaml.safe_load(f)
+from cronjob_config import Config
 
-DB_FILE = config["storage"]["sql"]["database_file"]
-JSON_FILE = config["storage"]["json"]["file_path"]
+# Load and validate config
+with open("config.yaml", "r") as f:
+    config_data = yaml.safe_load(f)
+    config = Config.model_validate(config_data)
+
+# Now you can access with proper typing
+if config.storage.backend == "sql":
+    DB_FILE = config.storage.database_file
+else:
+    JSON_FILE = config.storage.file_path
+
 MAX_JOBS_PER_OWNER = 10
 
 
@@ -213,9 +220,7 @@ class JSONStorage(Storage):
 
 # Initialize storage based on config
 storage = (
-    SQLStorage(DB_FILE)
-    if config["storage"]["backend"] == "sql"
-    else JSONStorage(JSON_FILE)
+    SQLStorage(DB_FILE) if config.storage.backend == "sql" else JSONStorage(JSON_FILE)
 )
 
 

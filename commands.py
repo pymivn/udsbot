@@ -11,7 +11,7 @@ import requests
 import uds
 import jp_dict
 import cronjob
-import joke
+import llm
 
 import config
 
@@ -142,17 +142,6 @@ def get_aqi_hcm() -> tuple:
         }
     )
     return us_embassy["n"], us_embassy["a"], us_embassy["utime"]
-
-
-def get_aqi_jp() -> tuple:
-    resp = requests.get(
-        "https://api.waqi.info/mapq/bounds/?bounds=35.2002957,139.2889003,35.4002958,139.5889103"
-    )
-    locs = resp.json()
-    if locs == []:
-        return "", "", ""
-    us_embassy = locs[0]
-    return us_embassy["city"], us_embassy["aqi"], us_embassy["utime"]
 
 
 def send_message(session: requests.Session, chat_id: int, text: str = "hi") -> None:
@@ -350,7 +339,7 @@ class Dispatcher:
                 text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
             )
         else:
-            cities = ["Yokohama", "Ho Chi Minh", "Hanoi"]
+            cities = ["Ho Chi Minh", "Hanoi"]
             temp_cities = get_temp(cities)
             for temp in temp_cities:
                 send_message(
@@ -359,13 +348,7 @@ class Dispatcher:
                     text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
                 )
                 logger.info("Temp: served city %s", temp["name"])
-            city = "jp&hcm&hn"
-            location, value, utime = get_aqi_jp()
-            send_message(
-                session=self.session,
-                chat_id=chat_id,
-                text=f"PM2.5 {value} at {location} at {utime}",
-            )
+            city = "hcm&hn"
             location, value, utime = get_aqi_hcm()
             send_message(
                 session=self.session,
@@ -420,9 +403,15 @@ class Dispatcher:
             logger.info("UDS: served camfr keyword %s", keyword)
 
     def dispatch_jk(self, text: str, chat_id: int, from_id: int) -> None:
-        msg = joke.gen_joke()
+        msg = llm.gen_joke()
         send_message(session=self.session, chat_id=chat_id, text=msg[:300])
         logger.info("served a joke")
+
+    def dispatch_lt(self, text: str, chat_id: int, from_id: int) -> None:
+        _lt, keyword = text.split(" ", 1)
+        msg = llm.translate(keyword)
+        send_message(session=self.session, chat_id=chat_id, text=msg[:300])
+        logger.info(f"LLM translated {text}")
 
     def dispatch_ji(self, text: str, chat_id: int, from_id: int) -> None:
         _cam, keyword = text.split(" ", 1)
@@ -460,12 +449,7 @@ class Dispatcher:
             chat_id=chat_id,
             text=f"PM2.5 {value} at {location} at {utime}",
         )
-        location, value, utime = get_aqi_jp()
-        send_message(
-            session=self.session,
-            chat_id=chat_id,
-            text=f"PM2.5 {value} at {location} at {utime}",
-        )
+
         logger.info("AQI: served city %s", city)
 
     def dispatch_tem(self, text: str, chat_id: int, from_id: int) -> None:
@@ -476,7 +460,7 @@ class Dispatcher:
                 text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
             )
         else:
-            cities = ["Yokohama", "Ho Chi Minh"]
+            cities = ["Ho Chi Minh", "Hanoi"]
             temp_cities = get_temp(cities)
             for temp in temp_cities:
                 send_message(
@@ -597,7 +581,21 @@ class Dispatcher:
                 text=jobs_str,
             )
 
+    def dispatch_x(self, text: str, chat_id: int, from_id: int) -> None:
+        _x, *cmd = text.split(" ")
+
+        self.dispatch(" ".join(cmd), chat_id, from_id)
+        keyword = " ".join(cmd[1:])
+
+        msg = llm.gen_example(keyword)
+        send_message(session=self.session, chat_id=chat_id, text=msg[:300])
+        logger.info(f"LLM x {text}")
+
     def dispatch(self, text: str, chat_id: int, from_id: int) -> None:
+        if not text or not text.strip():
+            logger.warn("Received empty message, skipping")
+            return
+            
         cmd, *_ = text.split()
         pure_cmd = cmd.strip().lstrip("/")
         func = getattr(self, f"dispatch_{pure_cmd}", print)
