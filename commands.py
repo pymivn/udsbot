@@ -132,16 +132,19 @@ def get_aqi_hcm() -> tuple:
 
     resp = requests.post(url, json=data)
     locs = resp.json()
-    us_embassy = locs["data"][0]
 
-    us_embassy.update(
-        {
-            "utime": datetime.datetime.utcfromtimestamp(us_embassy["u"]).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
-        }
-    )
-    return us_embassy["n"], us_embassy["a"], us_embassy["utime"]
+    if len(locs["data"]) > 0:
+        us_embassy = locs["data"][0]
+        us_embassy.update(
+            {
+                "utime": datetime.datetime.utcfromtimestamp(us_embassy["u"]).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            }
+        )
+        return us_embassy["n"], us_embassy["a"], us_embassy["utime"]
+    else:
+        return None, None, None
 
 
 def send_message(session: requests.Session, chat_id: int, text: str = "hi") -> None:
@@ -349,12 +352,21 @@ class Dispatcher:
                 )
                 logger.info("Temp: served city %s", temp["name"])
             city = "hcm&hn"
+
             location, value, utime = get_aqi_hcm()
-            send_message(
-                session=self.session,
-                chat_id=chat_id,
-                text=f"PM2.5 {value} at {location} at {utime}",
-            )
+            if location is not None or value is not None or utime is not None:
+                send_message(
+                    session=self.session,
+                    chat_id=chat_id,
+                    text=f"PM2.5 {value} at {location} at {utime}",
+                )
+            else:
+                send_message(
+                    session=self.session,
+                    chat_id=chat_id,
+                    text=f"No AQI available for Ho Chi Minh City",
+                )
+
             location, value, utime = get_aqi_hanoi()
             send_message(
                 session=self.session,
@@ -595,7 +607,7 @@ class Dispatcher:
         if not text or not text.strip():
             logger.warn("Received empty message, skipping")
             return
-            
+
         cmd, *_ = text.split()
         pure_cmd = cmd.strip().lstrip("/")
         func = getattr(self, f"dispatch_{pure_cmd}", print)
