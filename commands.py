@@ -364,7 +364,7 @@ class Dispatcher:
                 send_message(
                     session=self.session,
                     chat_id=chat_id,
-                    text=f"No AQI available for Ho Chi Minh City",
+                    text="No AQI available for Ho Chi Minh City",
                 )
 
             location, value, utime = get_aqi_hanoi()
