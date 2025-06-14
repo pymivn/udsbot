@@ -130,7 +130,7 @@ def get_aqi_hcm() -> tuple:
 
     data_aqi = resp["list"]
 
-    if len(data_aqi > 0):
+    if len(data_aqi) > 0:
         location = "Ho Chi Minh City"
         value = str(data_aqi[0]["components"]["pm2_5"])
         utime = datetime.datetime.utcfromtimestamp(data_aqi[0]["dt"]).strftime(
