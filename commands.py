@@ -122,26 +122,23 @@ def get_aqi_hanoi() -> tuple:
 
 
 def get_aqi_hcm() -> tuple:
-    url = "https://airnet.waqi.info/airnet/map/bounds"
-    data = {
-        "bounds": "106.65545867915007,10.773554342818551,106.71194267422896,10.788963661784884",
-        "zoom": 16,
-        "xscale": 61493.52564648868,
-        "width": 2481,
-    }
+    resp = requests.get(
+        "http://api.openweathermap.org/data/2.5/air_pollution?lat=10.81877&lon=106.70755&appid={}".format(
+            API_TEMP
+        )
+    ).json()
 
-    resp = requests.post(url, json=data)
-    locs = resp.json()
-    us_embassy = locs["data"][0]
+    data_aqi = resp["list"]
 
-    us_embassy.update(
-        {
-            "utime": datetime.datetime.utcfromtimestamp(us_embassy["u"]).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
-        }
-    )
-    return us_embassy["n"], us_embassy["a"], us_embassy["utime"]
+    if len(data_aqi > 0):
+        location = "Ho Chi Minh City"
+        value = str(data_aqi[0]["components"]["pm2_5"])
+        utime = datetime.datetime.utcfromtimestamp(data_aqi[0]["dt"]).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+        return location, value, utime
+    else:
+        return None, None, None
 
 
 def send_message(session: requests.Session, chat_id: int, text: str = "hi") -> None:
@@ -349,12 +346,21 @@ class Dispatcher:
                 )
                 logger.info("Temp: served city %s", temp["name"])
             city = "hcm&hn"
+
             location, value, utime = get_aqi_hcm()
-            send_message(
-                session=self.session,
-                chat_id=chat_id,
-                text=f"PM2.5 {value} at {location} at {utime}",
-            )
+            if location is not None or value is not None or utime is not None:
+                send_message(
+                    session=self.session,
+                    chat_id=chat_id,
+                    text=f"PM2.5 {value} at {location} at {utime}",
+                )
+            else:
+                send_message(
+                    session=self.session,
+                    chat_id=chat_id,
+                    text="No AQI available for Ho Chi Minh City",
+                )
+
             location, value, utime = get_aqi_hanoi()
             send_message(
                 session=self.session,
@@ -595,7 +601,7 @@ class Dispatcher:
         if not text or not text.strip():
             logger.warn("Received empty message, skipping")
             return
-            
+
         cmd, *_ = text.split()
         pure_cmd = cmd.strip().lstrip("/")
         func = getattr(self, f"dispatch_{pure_cmd}", print)
