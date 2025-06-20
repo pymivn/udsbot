@@ -119,7 +119,7 @@ def get_aqi(location: str, lat: float, lon: float) -> tuple:
     data_aqi = resp["list"]
 
     if len(data_aqi) > 0:
-        value = str(data_aqi[0]["components"]["pm2_5"])
+        value = str(int(float(data_aqi[0]["components"]["pm2_5"])))
         utime = datetime.datetime.utcfromtimestamp(data_aqi[0]["dt"]).strftime(
             "%Y-%m-%d %H:%M:%S"
         )
