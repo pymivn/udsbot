@@ -109,36 +109,39 @@ def _get_coin_name(code: str) -> str:
     )[code]
 
 
-def get_aqi_hanoi() -> tuple:
+def get_aqi(location: str, lat: float, lon: float) -> tuple:
     resp = requests.get(
-        "https://api.waqi.info/mapq/bounds/?bounds=20.96111901161895,105.75405120849611,21.09571147652958,105.91609954833986"
-    )
-    locs = resp.json()
-    for i in locs:
-        if "BVMT" in i["city"]:
-            us_embassy = i
-            break
-    return us_embassy["city"], us_embassy["aqi"], us_embassy["utime"]
-
-
-def get_aqi_hcm() -> tuple:
-    resp = requests.get(
-        "http://api.openweathermap.org/data/2.5/air_pollution?lat=10.81877&lon=106.70755&appid={}".format(
-            API_TEMP
+        "http://api.openweathermap.org/data/2.5/air_pollution?lat={}&lon={}&appid={}".format(
+            lat, lon, API_TEMP
         )
     ).json()
 
     data_aqi = resp["list"]
 
     if len(data_aqi) > 0:
-        location = "Ho Chi Minh City"
-        value = str(data_aqi[0]["components"]["pm2_5"])
+        value = str(int(float(data_aqi[0]["components"]["pm2_5"])))
         utime = datetime.datetime.utcfromtimestamp(data_aqi[0]["dt"]).strftime(
             "%Y-%m-%d %H:%M:%S"
         )
         return location, value, utime
     else:
         return None, None, None
+
+
+def get_aqi_hanoi() -> tuple:
+    location = "Ha Noi"
+    lat = 21.01516
+    lon = 105.79997
+
+    return get_aqi(location, lat, lon)
+
+
+def get_aqi_hcm() -> tuple:
+    location = "Ho Chi Minh City"
+    lat = 10.81877
+    lon = 106.70755
+
+    return get_aqi(location, lat, lon)
 
 
 def send_message(session: requests.Session, chat_id: int, text: str = "hi") -> None:
