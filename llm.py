@@ -1,6 +1,5 @@
 import requests
 import os
-
 from typing import Final
 
 
@@ -65,12 +64,18 @@ example:""",
 
 
 def translate_sentence(s: str) -> str:
+    prompt = f"""Translate this sentence to English '{s}', then break it down by chunks and explain words by words."""
+
     payload = {
-        "model": MODEL,
-        "prompt": f"""Translate this sentence to English '{s}', then break it down by chunks and explain words by words.""",
-        "stream": False,
+        "system_instruction": {
+            "parts": [{"text": "You are a Japanese-English teacher"}]
+        },
+        "contents": [{"parts": [{"text": prompt}]}],
     }
-    msg = session.post(LLM_ENDPOINT, json=payload).json()["response"]
+
+    resp = session.post(LLM_GEMINI_ENDPOINT, json=payload).json()
+    msg = resp["candidates"][0]["content"]["parts"][0]["text"]
+
     return msg
 
 
