@@ -12,6 +12,7 @@ import uds
 import jp_dict
 import cronjob
 import llm
+import jp_podcast
 
 import config
 
@@ -412,6 +413,12 @@ class Dispatcher:
         msg = llm.gen_joke()
         send_message(session=self.session, chat_id=chat_id, text=msg[:300])
         logger.info("served a joke")
+
+    def dispatch_nikkei(self, text: str, chat_id: int, from_id: int) -> None:
+        title = jp_podcast.get_latest_podcast_title()
+        msg = llm.translate_sentence(title)
+        send_message(session=self.session, chat_id=chat_id, text=msg)
+        logger.info("served nikkei")
 
     def dispatch_lt(self, text: str, chat_id: int, from_id: int) -> None:
         _lt, keyword = text.split(" ", 1)
