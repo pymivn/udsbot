@@ -64,6 +64,16 @@ example:""",
     return msg
 
 
+def translate_sentence(s: str) -> str:
+    payload = {
+        "model": MODEL,
+        "prompt": f"""Translate this sentence to English '{s}', then break it down by chunks and explain words by words.""",
+        "stream": False,
+    }
+    msg = session.post(LLM_ENDPOINT, json=payload).json()["response"]
+    return msg
+
+
 def gen_example(word_def: str) -> str:
     payload = {
         "system_instruction": {"parts": [{"text": SYSTEM_PROMPT_GEN_EXAMPLE}]},
