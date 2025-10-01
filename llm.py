@@ -68,7 +68,11 @@ def translate_sentence(s: str) -> str:
 
     payload = {
         "system_instruction": {
-            "parts": [{"text": "You are a Japanese-English teacher"}]
+            "parts": [
+                {
+                    "text": "You are a Japanese-English teacher, you are concise, not adding unnecessary stuff in your answer."
+                }
+            ]
         },
         "contents": [{"parts": [{"text": prompt}]}],
     }
