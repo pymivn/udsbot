@@ -419,8 +419,7 @@ class Dispatcher:
         latest = episodes[0]
 
         msg = llm.translate_sentence(latest.name)
-        title = f'<a href="{latest.url}">{latest.name}</a>'
-        send_message(session=self.session, chat_id=chat_id, text=f"{title}\n{msg}")
+        send_message(session=self.session, chat_id=chat_id, text=f"{msg}\n{latest.url}")
         logger.info("served nikkeime")
 
     def dispatch_lt(self, text: str, chat_id: int, from_id: int) -> None:
