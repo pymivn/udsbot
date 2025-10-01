@@ -415,10 +415,13 @@ class Dispatcher:
         logger.info("served a joke")
 
     def dispatch_nikkei(self, text: str, chat_id: int, from_id: int) -> None:
-        title = jp_podcast.get_latest_podcast_title()
-        msg = llm.translate_sentence(title)
-        send_message(session=self.session, chat_id=chat_id, text=msg)
-        logger.info("served nikkei")
+        episodes = jp_podcast.get_latest_podcast_episodes()
+        latest = episodes[0]
+
+        msg = llm.translate_sentence(latest.name)
+        title = f'<a href="{latest.url}">{latest.name}</a>'
+        send_message(session=self.session, chat_id=chat_id, text=f"{title}\n{msg}")
+        logger.info("served nikkeime")
 
     def dispatch_lt(self, text: str, chat_id: int, from_id: int) -> None:
         _lt, keyword = text.split(" ", 1)
