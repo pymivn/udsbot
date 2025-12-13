@@ -1,6 +1,5 @@
 import requests
 import os
-
 from typing import Final
 
 
@@ -61,6 +60,26 @@ example:""",
         "stream": False,
     }
     msg = session.post(LLM_ENDPOINT, json=payload).json()["response"]
+    return msg
+
+
+def translate_sentence(s: str) -> str:
+    prompt = f"""Translate this sentence to English '{s}', then break it down by chunks and explain words by words."""
+
+    payload = {
+        "system_instruction": {
+            "parts": [
+                {
+                    "text": "You are a Japanese-English teacher, you are concise, not adding unnecessary stuff in your answer."
+                }
+            ]
+        },
+        "contents": [{"parts": [{"text": prompt}]}],
+    }
+
+    resp = session.post(LLM_GEMINI_ENDPOINT, json=payload).json()
+    msg = resp["candidates"][0]["content"]["parts"][0]["text"]
+
     return msg
 
 
