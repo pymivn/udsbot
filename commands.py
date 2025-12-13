@@ -125,23 +125,33 @@ def get_aqi_hanoi() -> tuple:
 
 
 def get_aqi_hcm() -> tuple:
-    resp = requests.get(
-        "http://api.openweathermap.org/data/2.5/air_pollution?lat=10.81877&lon=106.70755&appid={}".format(
-            API_TEMP
-        )
-    ).json()
+    url = "https://airnet.waqi.info/airnet/map/bounds"
 
-    data_aqi = resp["list"]
+    current_time = datetime.datetime.utcnow().isoformat() + "Z"
 
-    if len(data_aqi) > 0:
-        location = "Ho Chi Minh City"
-        value = str(data_aqi[0]["components"]["pm2_5"])
-        utime = datetime.datetime.utcfromtimestamp(data_aqi[0]["dt"]).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
-        return location, value, utime
-    else:
-        return None, None, None
+    data = {
+        "bounds": "106.25058096704544,10.440834441344363,106.97878840746928,11.428942127967298",
+        "zoom": "11",
+        "xscale": "1303.4747344074406",
+        "width": "678",
+        "time": current_time,
+    }
+
+    response = requests.post(url, data=data)
+    locs = response.json()["data"]
+
+    if len(locs) > 0:
+        highest_aqi = max(locs, key=lambda x: x["a"] if isinstance(x["a"], int) else 0)
+
+        if highest_aqi:
+            name = highest_aqi["n"]
+            aqi_value = highest_aqi["a"]
+            utime = datetime.datetime.utcfromtimestamp(highest_aqi["u"]).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+            return name, aqi_value, utime
+
+    return "Ho Chi Minh City", None, None
 
 
 def send_message(session: requests.Session, chat_id: int, text: str = "hi") -> None:
