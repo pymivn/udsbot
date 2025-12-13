@@ -115,11 +115,13 @@ def get_aqi_hanoi() -> tuple:
         "https://api.waqi.info/mapq/bounds/?bounds=20.96111901161895,105.75405120849611,21.09571147652958,105.91609954833986"
     )
     locs = resp.json()
-    for i in locs:
-        if "BVMT" in i["city"]:
-            us_embassy = i
-            break
-    return us_embassy["city"], us_embassy["aqi"], us_embassy["utime"]
+    if len(locs) > 0:
+        for i in locs:
+            if i["aqi"].isdigit() and int(i["aqi"]) > 0:
+                return i["city"], i["aqi"], i["utime"]
+        return locs[0]["city"], None, locs[0]["utime"]
+    else:
+        return "Hanoi", None, None
 
 
 def get_aqi_hcm() -> tuple:
