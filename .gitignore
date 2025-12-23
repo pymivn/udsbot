@@ -137,6 +137,3 @@ chartimage.png
 #Cronjob
 cronjobs.json
 cronjobs.db
-
-#UV
-uv.lock
