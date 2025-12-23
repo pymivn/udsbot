@@ -129,7 +129,7 @@ def get_aqi_hcm() -> tuple:
 
     tz_hcm = datetime.timezone(datetime.timedelta(hours=7))
     current_time = datetime.datetime.utcnow().isoformat()
-    
+
     data = {
         "bounds": "106.57606490366962,10.710644309189911,106.83509113187337,10.906718682210693",
         "zoom": "11",
