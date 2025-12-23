@@ -127,18 +127,11 @@ def get_aqi_hanoi() -> tuple:
 def get_aqi_hcm() -> tuple:
     url = "https://airnet.waqi.info/airnet/map/bounds"
 
-<<<<<<< HEAD
     tz_hcm = datetime.timezone(datetime.timedelta(hours=7))
     current_time = datetime.datetime.utcnow().isoformat()
 
     data = {
         "bounds": "106.57606490366962,10.710644309189911,106.83509113187337,10.906718682210693",
-=======
-    current_time = datetime.datetime.utcnow().isoformat() + "Z"
-
-    data = {
-        "bounds": "106.25058096704544,10.440834441344363,106.97878840746928,11.428942127967298",
->>>>>>> 9a3294516d7cf598e2b297524b6cdf3cd1d2bc0a
         "zoom": "11",
         "xscale": "1303.4747344074406",
         "width": "678",
@@ -149,24 +142,14 @@ def get_aqi_hcm() -> tuple:
     locs = response.json()["data"]
 
     if len(locs) > 0:
-<<<<<<< HEAD
         highest_aqi = max(locs, key=lambda x: x["u"] if isinstance(x["u"], int) else 0)
-=======
-        highest_aqi = max(locs, key=lambda x: x["a"] if isinstance(x["a"], int) else 0)
->>>>>>> 9a3294516d7cf598e2b297524b6cdf3cd1d2bc0a
 
         if highest_aqi:
             name = highest_aqi["n"]
             aqi_value = highest_aqi["a"]
-<<<<<<< HEAD
             utime = datetime.datetime.fromtimestamp(
                 highest_aqi["u"], tz=tz_hcm
             ).strftime("%Y-%m-%d %H:%M:%S")
-=======
-            utime = datetime.datetime.utcfromtimestamp(highest_aqi["u"]).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
->>>>>>> 9a3294516d7cf598e2b297524b6cdf3cd1d2bc0a
             return name, aqi_value, utime
 
     return "Ho Chi Minh City", None, None
