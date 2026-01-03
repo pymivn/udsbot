@@ -11,7 +11,7 @@ LLM_ENDPOINT: Final = "http://localhost:11434/api/generate"
 
 # Google Gemini API
 GEMINI_API_KEY: Final = os.environ["GEMINI_API_KEY"]
-GEMINI_MODEL: Final = "gemini-2.0-flash"
+GEMINI_MODEL: Final = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 LLM_GEMINI_ENDPOINT: Final = "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}".format(
     GEMINI_MODEL, GEMINI_API_KEY
 )
