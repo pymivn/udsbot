@@ -124,6 +124,21 @@ def get_aqi_hanoi() -> tuple:
         return "Hanoi", None, None
 
 
+def get_aqi_singapore() -> tuple:
+    resp = requests.get(
+        "https://api.waqi.info/mapq/bounds/?bounds=1.156,103.605,1.494,104.084",
+        timeout=10,
+    )
+    locs = resp.json()
+    if len(locs) > 0:
+        for i in locs:
+            if i["aqi"].isdigit() and int(i["aqi"]) > 0:
+                return i["city"], i["aqi"], i["utime"]
+        return locs[0]["city"], None, locs[0]["utime"]
+    else:
+        return "Singapore", None, None
+
+
 def get_aqi_hcm() -> tuple:
     url = "https://airnet.waqi.info/airnet/map/bounds"
 
@@ -350,7 +365,7 @@ class Dispatcher:
                 text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
             )
         else:
-            cities = ["Ho Chi Minh", "Hanoi"]
+            cities = ["Ho Chi Minh", "Hanoi", "Singapore"]
             temp_cities = get_temp(cities)
             for temp in temp_cities:
                 send_message(
@@ -359,7 +374,7 @@ class Dispatcher:
                     text=f"Weather in {temp['name']} is {temp['weather']}, temp now: {temp['temp_now']}, feels like: {temp['feels_like']}, humidity:  {temp['humidity']}%",
                 )
                 logger.info("Temp: served city %s", temp["name"])
-            city = "hcm&hn"
+            city = "hcm&hn&sg"
 
             location, value, utime = get_aqi_hcm()
             if location is not None or value is not None or utime is not None:
@@ -376,6 +391,13 @@ class Dispatcher:
                 )
 
             location, value, utime = get_aqi_hanoi()
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"PM2.5 {value} at {location} at {utime}",
+            )
+
+            location, value, utime = get_aqi_singapore()
             send_message(
                 session=self.session,
                 chat_id=chat_id,
@@ -463,7 +485,7 @@ class Dispatcher:
             logger.info("Jisho: served ji keyword %s", keyword)
 
     def dispatch_aqi(self, text: str, chat_id: int, from_id: int) -> None:
-        city = "hn&hcm&jp"
+        city = "hn&hcm&sg"
         location, value, utime = get_aqi_hanoi()
         send_message(
             session=self.session,
@@ -472,6 +494,13 @@ class Dispatcher:
         )
 
         location, value, utime = get_aqi_hcm()
+        send_message(
+            session=self.session,
+            chat_id=chat_id,
+            text=f"PM2.5 {value} at {location} at {utime}",
+        )
+
+        location, value, utime = get_aqi_singapore()
         send_message(
             session=self.session,
             chat_id=chat_id,
@@ -488,7 +517,7 @@ class Dispatcher:
                 text="To show weather data, you need a key api and set `WEATHER_TOKEN` env, go to https://openweathermap.org/api to get one.",
             )
         else:
-            cities = ["Ho Chi Minh", "Hanoi"]
+            cities = ["Ho Chi Minh", "Hanoi", "Singapore"]
             temp_cities = get_temp(cities)
             for temp in temp_cities:
                 send_message(
