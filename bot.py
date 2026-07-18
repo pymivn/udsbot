@@ -64,6 +64,13 @@ def fetch_message_and_process(session):
 
 if __name__ == "__main__":
     logger.info("Bot is starting")
+    try:
+        import dict_lookup
+
+        dict_lookup._ensure_databases()
+    except Exception:
+        logger.exception("Failed to initialize dictionary databases at startup")
+
     while True:
         with requests.Session() as S:
             fetch_message_and_process(session=S)
