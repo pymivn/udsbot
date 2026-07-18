@@ -9,3 +9,9 @@ mypy:
 
 test:
 	python3 -m unittest
+
+setup-dicts:
+	uv run python -m wn download oewn:2024
+	uv run python -m wn download omw-fr
+	uv run python -m wn download omw-en:2.0
+

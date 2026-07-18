@@ -13,7 +13,7 @@
 | Bot Architecture | Raw Telegram Bot API polling (no framework)                       |
 | LLM (local)      | Ollama (`gemma3:1b` at `localhost:11434`)                         |
 | LLM (cloud)      | Google Gemini API (default model: `gemini-2.5-flash`)             |
-| Dictionary       | `uds` library (Urban Dictionary, Cambridge EN/FR)                 |
+| Dictionary       | WordNet (`wn`) + `english-to-ipa` (fully offline)              |
 | Japanese         | Jisho.org API + in-memory SQLite kanji database                   |
 | Charting         | `pandas` + `plotly` (lazy-imported for crypto candlestick charts) |
 | Config           | `PyYAML` + `Pydantic` (for cronjob storage config validation)     |
@@ -75,7 +75,7 @@ The project uses a **flat module structure** — all Python files live at the re
 | --------------------- | ------------------- | -------------------------------------------------------- |
 | `/uds <word>`         | `dispatch_uds`      | Urban Dictionary lookup                                  |
 | `/cam <word>`         | `dispatch_cam`      | Cambridge Dictionary (English) with IPA                  |
-| `/fr <word>`          | `dispatch_fr`       | Cambridge Dictionary (French) with IPA                   |
+| `/fr <word>`          | `dispatch_fr`       | French WordNet (WOLF) lookup                             |
 | `/ji <word>`          | `dispatch_ji`       | Jisho.org Japanese dictionary lookup                     |
 | `/jo [grade] [nth]`   | `dispatch_jo`       | Random/specific Jōyō kanji by grade level                |
 | `/hi`                 | `dispatch_hi`       | Weather + AQI for HCM, Hanoi, Singapore                  |
@@ -162,6 +162,9 @@ uv sync
 # Run all quality checks (format + type check + test)
 make all
 
+# Download offline WordNet lexicons (required for /cam and /fr)
+make setup-dicts
+
 # Individual targets
 make fmt          # ruff format *.py && ruff check *.py
 make mypy         # mypy --install-types --non-interactive --ignore-missing-imports *.py
@@ -191,7 +194,8 @@ python bot.py
 
 | Dependency | Source | Purpose |
 | ---------- | ------ | ------- |
-| `uds` | `github.com/hvnsweeting/uds` (git) | Urban Dictionary + Cambridge Dictionary scraping |
+| `wn` | PyPI | Open English WordNet and French WOLF dictionary lookup |
+| `english-to-ipa` | GitHub | Converting English text to IPA pronunciation offline |
 | `requests` | PyPI | HTTP client for all API calls |
 | `pydantic` | PyPI | Config validation for cronjob storage |
 | `pyyaml` | PyPI | YAML config loading |
