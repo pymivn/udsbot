@@ -98,7 +98,7 @@ def lookup_word(word: str) -> LookupResult:
     If the word is not found, ``means`` will be an empty list.
     IPA is provided by eng-to-ipa (offline, CMU-based).
     """
-    url = f"https://en.wiktionary.org/wiki/{quote(word)}"
+    url = f"https://dictionary.cambridge.org/dictionary/english/{quote(word)}"
     ipa = _get_ipa(word)
     means: list[str] = []
 
@@ -132,7 +132,7 @@ def lookup_word_fr(word: str) -> LookupResult:
     If the word is not found, ``means`` will be an empty list.
     No IPA is provided (empty string).
     """
-    url = f"https://fr.wiktionary.org/wiki/{quote(word)}"
+    url = f"https://dictionary.cambridge.org/dictionary/french-english/{quote(word)}"
     ipa = ""
     means: list[str] = []
 

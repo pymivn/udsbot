@@ -78,7 +78,11 @@ class TestLookupWord(unittest.TestCase):
         result = dict_lookup.lookup_word("run")
 
         self.assertIn("run", result["url"])
-        self.assertTrue(result["url"].startswith("https://en.wiktionary.org/wiki/"))
+        self.assertTrue(
+            result["url"].startswith(
+                "https://dictionary.cambridge.org/dictionary/english/"
+            )
+        )
 
     @patch("dict_lookup._get_ipa", return_value="rən")
     @patch("dict_lookup.wn")
@@ -249,7 +253,11 @@ class TestLookupWordFr(unittest.TestCase):
         result = dict_lookup.lookup_word_fr("maison")
 
         self.assertIn("maison", result["url"])
-        self.assertTrue(result["url"].startswith("https://fr.wiktionary.org/wiki/"))
+        self.assertTrue(
+            result["url"].startswith(
+                "https://dictionary.cambridge.org/dictionary/french-english/"
+            )
+        )
 
     @patch("dict_lookup.wn")
     def test_wn_exception_returns_empty_means(self, mock_wn: MagicMock) -> None:
