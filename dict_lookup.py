@@ -92,4 +92,3 @@ if __name__ == "__main__":
                 print(f"  - {m}")
         else:
             print("  (no definitions found)")
-

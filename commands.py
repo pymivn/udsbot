@@ -8,7 +8,6 @@ import random
 from typing import MutableMapping, BinaryIO, cast
 
 import requests
-import uds
 import dict_lookup
 import jp_dict
 import cronjob
@@ -319,24 +318,6 @@ class Dispatcher:
     def __init__(self, session: requests.Session) -> None:
         self.session = session
 
-    def dispatch_uds(self, text: str, chat_id: int, from_id: int) -> None:
-        _uds, keyword = text.split(" ", 1)
-
-        try:
-            result = uds.urbandictionary(keyword)
-            url, meanings = result["url"], result["means"]
-
-        except Exception:
-            logger.exception(keyword)
-        else:
-            msg = fit_meanings_to_message(url, meanings)
-            send_message(
-                session=self.session,
-                chat_id=chat_id,
-                text=f"UrbanDictionary result for `{keyword}`\n" + msg,
-            )
-            logger.info("UDS: served keyword %s", keyword)
-
     def dispatch_cam(self, text: str, chat_id: int, from_id: int) -> None:
         _cam, keyword = text.split(" ", 1)
 
@@ -423,27 +404,6 @@ class Dispatcher:
             nth = -1
             logger.info("Get joyo kanji grade: %d #%d", grade, nth)
         send_message(session=self.session, chat_id=chat_id, text=kanji(grade, int(nth)))
-
-    def dispatch_fr(self, text: str, chat_id: int, from_id: int) -> None:
-        _cam, keyword = text.split(" ", 1)
-
-        try:
-            result = uds.cambridge_fr(keyword)
-            url, ipa, meanings = (
-                result["url"],
-                result["ipa"],
-                result["means"],
-            )
-        except Exception:
-            logger.exception(keyword)
-        else:
-            msg = fit_meanings_to_message(url, meanings)
-            send_message(
-                session=self.session,
-                chat_id=chat_id,
-                text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
-            )
-            logger.info("UDS: served camfr keyword %s", keyword)
 
     def dispatch_jk(self, text: str, chat_id: int, from_id: int) -> None:
         msg = llm.gen_joke()
