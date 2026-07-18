@@ -9,6 +9,7 @@ from typing import MutableMapping, BinaryIO, cast
 
 import requests
 import uds
+import dict_lookup
 import jp_dict
 import cronjob
 import llm
@@ -340,7 +341,7 @@ class Dispatcher:
         _cam, keyword = text.split(" ", 1)
 
         try:
-            result = uds.cambridge(keyword)
+            result = dict_lookup.lookup_word(keyword)
             url, ipa, meanings = (
                 result["url"],
                 result["ipa"],

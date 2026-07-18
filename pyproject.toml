@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "english-to-ipa",
     "lxml[html-clean]>=5.3.2",
     "matplotlib>=3.10.1",
     "mypy>=1.15.0",
@@ -18,7 +19,9 @@ dependencies = [
     "types-pyyaml>=6.0.12.20250402",
     "types-requests>=2.32.0.20250328",
     "uds",
+    "wn>=1.1.0",
 ]
 
 [tool.uv.sources]
+english-to-ipa = { git = "https://github.com/mphilli/English-to-IPA", rev = "fda784a9a27a4b3be7260debc130e33b55210f6a" }
 uds = { git = "https://github.com/hvnsweeting/uds", rev = "master" }
