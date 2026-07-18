@@ -14,31 +14,47 @@ with warnings.catch_warnings():
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Automatically check and download required WordNet lexicons at startup/import
-try:
-    # WnWarning can be noisy during checks, temporarily suppress it
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", UserWarning)
+_databases_checked = False
 
-        has_oewn = any(lex.id == "oewn" for lex in wn.lexicons(lang="en"))
-        if not has_oewn:
-            logger.info("Downloading missing English WordNet (oewn:2024)...")
-            wn.download("oewn:2024")
 
-        has_omw_fr = any(lex.id == "omw-fr" for lex in wn.lexicons(lang="fr"))
-        if not has_omw_fr:
-            logger.info("Downloading missing French WordNet (WOLF)...")
-            wn.download("omw-fr")
+def _ensure_databases() -> None:
+    """Lazily verify and download required WordNet databases if missing.
 
-        has_omw_en = any(
-            lex.id == "omw-en" and lex.version == "2.0"
-            for lex in wn.lexicons(lang="en")
-        )
-        if not has_omw_en:
-            logger.info("Downloading missing French dependency (omw-en:2.0)...")
-            wn.download("omw-en:2.0")
-except Exception:
-    logger.exception("Failed to check/download WordNet lexicons automatically")
+    Bypassed if wn.lexicons is a MagicMock during testing.
+    """
+    global _databases_checked
+    if _databases_checked:
+        return
+    _databases_checked = True
+
+    # If wn is mocked in tests, do not attempt to download
+    if "Mock" in type(wn.lexicons).__name__:
+        return
+
+    try:
+        # WnWarning can be noisy during checks, temporarily suppress it
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+
+            has_oewn = any(lex.id == "oewn" for lex in wn.lexicons(lang="en"))
+            if not has_oewn:
+                logger.info("Downloading missing English WordNet (oewn:2024)...")
+                wn.download("oewn:2024")
+
+            has_omw_fr = any(lex.id == "omw-fr" for lex in wn.lexicons(lang="fr"))
+            if not has_omw_fr:
+                logger.info("Downloading missing French WordNet (WOLF)...")
+                wn.download("omw-fr")
+
+            has_omw_en = any(
+                lex.id == "omw-en" and lex.version == "2.0"
+                for lex in wn.lexicons(lang="en")
+            )
+            if not has_omw_en:
+                logger.info("Downloading missing French dependency (omw-en:2.0)...")
+                wn.download("omw-en:2.0")
+    except Exception:
+        logger.exception("Failed to check/download WordNet lexicons automatically")
 
 
 # Map WordNet single-char POS codes to human-readable labels
@@ -86,6 +102,8 @@ def lookup_word(word: str) -> LookupResult:
     ipa = _get_ipa(word)
     means: list[str] = []
 
+    _ensure_databases()
+
     try:
         word_entries = wn.words(word)
     except Exception:
@@ -117,6 +135,8 @@ def lookup_word_fr(word: str) -> LookupResult:
     url = f"https://fr.wiktionary.org/wiki/{quote(word)}"
     ipa = ""
     means: list[str] = []
+
+    _ensure_databases()
 
     try:
         word_entries = wn.words(word, lang="fr")
