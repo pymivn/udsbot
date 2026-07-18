@@ -57,13 +57,13 @@ def _ensure_databases() -> None:
         logger.exception("Failed to check/download WordNet lexicons automatically")
 
 
-# Map WordNet single-char POS codes to human-readable labels
+# Map WordNet single-char POS codes to shortened labels
 _POS_LABELS: dict[str, str] = {
-    "n": "noun",
-    "v": "verb",
-    "a": "adj",
+    "n": "n",
+    "v": "v",
+    "a": "a",
     "r": "adv",
-    "s": "adj",
+    "s": "a",
 }
 
 

@@ -52,8 +52,8 @@ class TestLookupWord(unittest.TestCase):
 
         self.assertIsInstance(means, list)
         self.assertEqual(len(means), 2)
-        self.assertEqual(means[0], "(noun) a greeting")
-        self.assertEqual(means[1], "(verb) to say hello")
+        self.assertEqual(means[0], "(n) a greeting")
+        self.assertEqual(means[1], "(v) to say hello")
 
     @patch("dict_lookup._get_ipa", return_value="")
     @patch("dict_lookup.wn")
@@ -124,9 +124,9 @@ class TestLookupWord(unittest.TestCase):
         result = dict_lookup.lookup_word("test")
         means = result["means"]
 
-        self.assertTrue(means[0].startswith("(noun)"))
-        self.assertTrue(means[1].startswith("(verb)"))
-        self.assertTrue(means[2].startswith("(adj)"))
+        self.assertTrue(means[0].startswith("(n)"))
+        self.assertTrue(means[1].startswith("(v)"))
+        self.assertTrue(means[2].startswith("(a)"))
         self.assertTrue(means[3].startswith("(adv)"))
 
     @patch("dict_lookup._get_ipa", return_value="hɛˈloʊ")
@@ -225,15 +225,15 @@ class TestLookupWordFr(unittest.TestCase):
 
         mock_wn.words.return_value = [
             self._make_word_entry("n", ["a house"]),
-            self._make_word_entry("adj", ["domestic"]),
+            self._make_word_entry("a", ["domestic"]),
         ]
         result = dict_lookup.lookup_word_fr("maison")
         means = result["means"]
 
         self.assertIsInstance(means, list)
         self.assertEqual(len(means), 2)
-        self.assertEqual(means[0], "(noun) a house")
-        self.assertEqual(means[1], "(adj) domestic")
+        self.assertEqual(means[0], "(n) a house")
+        self.assertEqual(means[1], "(a) domestic")
 
     @patch("dict_lookup.wn")
     def test_unknown_word_returns_empty_means(self, mock_wn: MagicMock) -> None:
