@@ -339,6 +339,26 @@ class Dispatcher:
             )
             logger.info("UDS: served cam keyword %s", keyword)
 
+    def dispatch_fr(self, text: str, chat_id: int, from_id: int) -> None:
+        _fr, keyword = text.split(" ", 1)
+
+        try:
+            result = dict_lookup.lookup_word_fr(keyword)
+            url, meanings = (
+                result["url"],
+                result["means"],
+            )
+        except Exception:
+            logger.exception(keyword)
+        else:
+            msg = fit_meanings_to_message(url, meanings)
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text=f"French dictionary result for `{keyword}`\n" + msg,
+            )
+            logger.info("UDS: served fr keyword %s", keyword)
+
     def dispatch_hi(self, text: str, chat_id: int, from_id: int) -> None:
         if not API_TEMP:
             send_message(

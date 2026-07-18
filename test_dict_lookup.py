@@ -181,5 +181,85 @@ class TestGetIpa(unittest.TestCase):
         self.assertEqual(dict_lookup._get_ipa("hello"), "")
 
 
+class TestLookupWordFr(unittest.TestCase):
+    """Tests for dict_lookup.lookup_word_fr using mocked wn."""
+
+    def _make_word_entry(self, pos: str, definitions: list[str]) -> MagicMock:
+        """Helper to create a mock wn Word object."""
+        senses = []
+        for defn in definitions:
+            en_synset = MagicMock()
+            en_synset.definition.return_value = defn
+            synset = MagicMock()
+            synset.translate.return_value = [en_synset]
+            sense = MagicMock()
+            sense.synset.return_value = synset
+            senses.append(sense)
+
+        word_entry = MagicMock()
+        word_entry.pos = pos
+        word_entry.senses.return_value = senses
+        return word_entry
+
+    @patch("dict_lookup.wn")
+    def test_known_word_returns_correct_keys(self, mock_wn: MagicMock) -> None:
+        import dict_lookup
+
+        mock_wn.words.return_value = [
+            self._make_word_entry("n", ["a house"]),
+        ]
+        result = dict_lookup.lookup_word_fr("maison")
+
+        self.assertIn("url", result)
+        self.assertIn("ipa", result)
+        self.assertIn("means", result)
+        self.assertEqual(result["ipa"], "")
+
+    @patch("dict_lookup.wn")
+    def test_known_word_has_definitions(self, mock_wn: MagicMock) -> None:
+        import dict_lookup
+
+        mock_wn.words.return_value = [
+            self._make_word_entry("n", ["a house"]),
+            self._make_word_entry("adj", ["domestic"]),
+        ]
+        result = dict_lookup.lookup_word_fr("maison")
+        means = result["means"]
+
+        self.assertIsInstance(means, list)
+        self.assertEqual(len(means), 2)
+        self.assertEqual(means[0], "(noun) a house")
+        self.assertEqual(means[1], "(adj) domestic")
+
+    @patch("dict_lookup.wn")
+    def test_unknown_word_returns_empty_means(self, mock_wn: MagicMock) -> None:
+        import dict_lookup
+
+        mock_wn.words.return_value = []
+        result = dict_lookup.lookup_word_fr("xyznonexistent")
+
+        self.assertEqual(result["means"], [])
+        self.assertEqual(result["ipa"], "")
+
+    @patch("dict_lookup.wn")
+    def test_url_contains_word(self, mock_wn: MagicMock) -> None:
+        import dict_lookup
+
+        mock_wn.words.return_value = []
+        result = dict_lookup.lookup_word_fr("maison")
+
+        self.assertIn("maison", result["url"])
+        self.assertTrue(result["url"].startswith("https://fr.wiktionary.org/wiki/"))
+
+    @patch("dict_lookup.wn")
+    def test_wn_exception_returns_empty_means(self, mock_wn: MagicMock) -> None:
+        import dict_lookup
+
+        mock_wn.words.side_effect = RuntimeError("db error")
+        result = dict_lookup.lookup_word_fr("maison")
+
+        self.assertEqual(result["means"], [])
+
+
 if __name__ == "__main__":
     unittest.main()
