@@ -14,6 +14,33 @@ with warnings.catch_warnings():
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Automatically check and download required WordNet lexicons at startup/import
+try:
+    # WnWarning can be noisy during checks, temporarily suppress it
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+
+        has_oewn = any(lex.id == "oewn" for lex in wn.lexicons(lang="en"))
+        if not has_oewn:
+            logger.info("Downloading missing English WordNet (oewn:2024)...")
+            wn.download("oewn:2024")
+
+        has_omw_fr = any(lex.id == "omw-fr" for lex in wn.lexicons(lang="fr"))
+        if not has_omw_fr:
+            logger.info("Downloading missing French WordNet (WOLF)...")
+            wn.download("omw-fr")
+
+        has_omw_en = any(
+            lex.id == "omw-en" and lex.version == "2.0"
+            for lex in wn.lexicons(lang="en")
+        )
+        if not has_omw_en:
+            logger.info("Downloading missing French dependency (omw-en:2.0)...")
+            wn.download("omw-en:2.0")
+except Exception:
+    logger.exception("Failed to check/download WordNet lexicons automatically")
+
+
 # Map WordNet single-char POS codes to human-readable labels
 _POS_LABELS: dict[str, str] = {
     "n": "noun",
