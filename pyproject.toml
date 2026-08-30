@@ -23,3 +23,9 @@ dependencies = [
 
 [tool.uv.sources]
 english-to-ipa = { git = "https://github.com/mphilli/English-to-IPA", rev = "fda784a9a27a4b3be7260debc130e33b55210f6a" }
+
+[tool.ruff.lint]
+extend-select = ["C901", "PLR0912", "PLR0915"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10

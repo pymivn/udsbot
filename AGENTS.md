@@ -207,6 +207,7 @@ python bot.py
 | `matplotlib` | PyPI | Plotting support |
 | `numpy` | PyPI | Numerical operations |
 
+
 ## Runtime Requirements
 
 - **Ollama** must be running locally at `localhost:11434` with the `gemma3:1b` model for `/jk` and `/lt` commands.
@@ -227,3 +228,4 @@ python bot.py
 10. **Dependencies**: Add new dependencies to `pyproject.toml`. The `uds` library is sourced from git via `[tool.uv.sources]`.
 11. **Ollama dependency**: Features using local Ollama should gracefully handle connection failures.
 12. **Lazy imports**: Heavy libraries (`pandas`, `plotly`) are lazy-imported inside functions to keep startup fast.
+13. **Security audit must include dependency health check**: When performing security audits, always check for deprecated, unmaintained, or vulnerable dependencies — scan `pyproject.toml`, `uv.lock`, and grep for lazy imports of packages not declared in `pyproject.toml`.
