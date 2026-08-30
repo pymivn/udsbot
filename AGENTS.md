@@ -206,7 +206,6 @@ python bot.py
 | `lxml[html-clean]` | PyPI | HTML parsing |
 | `matplotlib` | PyPI | Plotting support |
 | `numpy` | PyPI | Numerical operations |
-| `requests_html` | Used in `jp_dict.py` | HTML scraping (data-prep script only, not runtime) |
 
 ## Runtime Requirements
 

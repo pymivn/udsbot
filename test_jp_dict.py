@@ -128,5 +128,57 @@ class TestTatoebaV1Sentences(unittest.TestCase):
         self.assertEqual(sentences, [])
 
 
+SAMPLE_KANJI_NODE_HTML = """\
+<div class="kanji_light_content">
+  <div class="debug">0.0029</div>
+  <div class="info clearfix">
+    <span class="strokes">4 strokes.</span>
+    JLPT N5.
+    Jōyō kanji, taught in grade 1.
+  </div>
+  <div class="literal_block">
+    <span class="character literal japanese_gothic" lang="ja"><a href="//jisho.org/search/%E6%97%A5%20%23kanji">日</a></span>
+  </div>
+  <div class="meanings english sense">
+    <span>day, </span>
+    <span>sun, </span>
+    <span>Japan, </span>
+    <span>counter for days</span>
+  </div>
+  <div class="kun readings">
+    <span class="type">Kun: </span>
+    <span class="japanese_gothic"><a href="//jisho.org/search/foo">ひ</a>、 </span>
+    <span class="japanese_gothic"><a href="//jisho.org/search/bar">-か</a></span>
+  </div>
+  <div class="on readings">
+    <span class="type">On: </span>
+    <span class="japanese_gothic"><a href="//jisho.org/search/baz">ニチ</a>、 </span>
+    <span class="japanese_gothic"><a href="//jisho.org/search/qux">ジツ</a></span>
+  </div>
+</div>
+"""
+
+
+class TestParseKanjiNode(unittest.TestCase):
+    def test_parse_kanji_node_extracts_kanji(self) -> None:
+        result = jp_dict.parse_kanji_node(SAMPLE_KANJI_NODE_HTML)
+        self.assertEqual(result["kanji"], "日")
+
+    def test_parse_kanji_node_extracts_meaning(self) -> None:
+        result = jp_dict.parse_kanji_node(SAMPLE_KANJI_NODE_HTML)
+        self.assertEqual(result["meaning"], "day, sun, Japan, counter for days")
+
+    def test_parse_kanji_node_extracts_readings(self) -> None:
+        result = jp_dict.parse_kanji_node(SAMPLE_KANJI_NODE_HTML)
+        # Readings should include both kun and on readings
+        self.assertIn("ひ", result["reading"])
+        self.assertIn("ニチ", result["reading"])
+
+    def test_parse_kanji_node_extracts_url(self) -> None:
+        result = jp_dict.parse_kanji_node(SAMPLE_KANJI_NODE_HTML)
+        self.assertIn("jisho.org", result["url"])
+        self.assertIn("kanji", result["url"])
+
+
 if __name__ == "__main__":
     unittest.main()

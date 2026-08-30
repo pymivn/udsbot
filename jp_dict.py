@@ -119,35 +119,60 @@ def search_jisho(word: str) -> dict:
     return {"url": "", "reading": "", "means": ""}
 
 
-def fetch_jisho_grade_words(grade: int = 1):
-    sess = requests_html.HTMLSession()
+def parse_kanji_node(html_text: str) -> dict[str, str]:
+    """Pure function: parse a kanji_light_content HTML fragment into structured data."""
+    import lxml.html
 
-    page = 1
-    while True:
-        url = "https://fetch_jisho_grade_words.org/search/%23kanji%20%23grade:{}?page={}".format(
-            grade, page
-        )
+    doc = lxml.html.fromstring(html_text)
 
-        resp = sess.get(url)
-        nodes = resp.html.xpath('//div[@class="kanji_light_content"]')
-        if not nodes:
-            return
-        for node in nodes:
-            yield get_a_node(node)
-        page += 1
-        time.sleep(DELAY)
+    kanji_el = doc.xpath('.//div[@class="literal_block"]//a')
+    kanji = kanji_el[0].text_content().strip() if kanji_el else ""
 
+    href = kanji_el[0].get("href", "") if kanji_el else ""
+    url = href.lstrip("/")
 
-def get_a_node(node: requests_html.Element) -> dict:
-    kanji, meaning, *kun_on = node.text.splitlines()[3:]
-    e = node.xpath("//a")[0]
-    url = e.attrs["href"].strip("/")
+    meaning_spans = doc.xpath('.//div[contains(@class, "meanings")]//span')
+    meaning = "".join(s.text_content() for s in meaning_spans).strip().rstrip(",")
+
+    reading_parts: list[str] = []
+    for div in doc.xpath('.//div[contains(@class, "readings")]'):
+        for span in div.xpath('.//span[contains(@class, "japanese_gothic")]'):
+            reading_parts.append(span.text_content().strip().rstrip("、").strip())
+
     return {
         "kanji": kanji,
         "meaning": meaning,
-        "reading": " ".join(kun_on),
+        "reading": " ".join(reading_parts),
         "url": url,
     }
+
+
+def fetch_jisho_grade_words(grade: int = 1):
+    import lxml.html
+
+    page = 1
+    while True:
+        url = "https://jisho.org/search/%23kanji%20%23grade:{}?page={}".format(
+            grade, page
+        )
+
+        resp = requests.get(url, timeout=30)
+        if resp.status_code != 200:
+            return
+
+        doc = lxml.html.fromstring(resp.text)
+        nodes = doc.xpath('//div[@class="kanji_light_content"]')
+        if not nodes:
+            return
+
+        for node in nodes:
+            import lxml.html as lh
+
+            node_html = lh.tostring(node, encoding="unicode")
+            yield parse_kanji_node(node_html)
+
+        page += 1
+        time.sleep(DELAY)
 
 
 def init_kanji_db(dbpath: str) -> sqlite3.Connection:
