@@ -87,7 +87,9 @@ The project uses a **flat module structure** — all Python files live at the re
 | `/jk`                 | `dispatch_jk`       | Generate a joke via local Ollama LLM                     |
 | `/lt <word>`          | `dispatch_lt`       | Define/translate a word via local Ollama LLM             |
 | `/nikkei`             | `dispatch_nikkei`   | Latest Nikkei podcast episode + Gemini translation       |
-| `/x <cmd> <word>`     | `dispatch_x`        | Run another command + generate example sentence via Gemini |
+| `/x [cmd] [word]`     | `dispatch_x`        | Generate example sentence via Gemini (supports reply, optional subcommand) |
+| `/xj [cmd] [word]`    | `dispatch_xj`       | Fetch example sentences from Jisho.org (supports reply, optional subcommand) |
+| `/ex [cmd] [word]`    | `dispatch_ex`       | Alias for `/xj` (fetch example sentences from Jisho.org) |
 | `/cron HH:MM <cmd>`   | `dispatch_cron`     | Add a scheduled cron job                                 |
 | `/delcron <UUID>`     | `dispatch_delcron`  | Delete a cron job by UUID                                |
 | `/listcron`           | `dispatch_listcron` | List user's cron jobs                                    |

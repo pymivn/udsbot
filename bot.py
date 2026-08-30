@@ -45,10 +45,22 @@ def fetch_message_and_process(session):
             chat_id = r["message"]["chat"]["id"]
             from_id = r["message"]["from"]["id"]
             text = r["message"]["text"].strip()
-            logger.info("Processing %s from %s in chat %s", text, from_id, chat_id)
+            reply_to_message = message.get("reply_to_message")
+            reply_text = (
+                reply_to_message.get("text")
+                if isinstance(reply_to_message, dict)
+                else None
+            )
+            logger.info(
+                "Processing %s from %s in chat %s (reply: %s)",
+                text,
+                from_id,
+                chat_id,
+                bool(reply_text),
+            )
             dispatcher = Dispatcher(session=session)
             try:
-                dispatcher.dispatch(text, chat_id, from_id)
+                dispatcher.dispatch(text, chat_id, from_id, reply_text=reply_text)
             except Exception as e:
                 send_message(
                     session,

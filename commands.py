@@ -5,6 +5,8 @@ import time
 import datetime
 import hashlib
 import random
+import re
+from dataclasses import dataclass
 from typing import MutableMapping, BinaryIO, cast
 
 import requests
@@ -314,12 +316,97 @@ def kanji(grade: int = 2, nth: int = -1) -> str:
     return "{}: {}\n{}\n{}".format(k.char, k.meaning, k.reading, k.url)
 
 
+def extract_keyword_from_text(text: str) -> str:
+    if not text or not text.strip():
+        return ""
+
+    lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
+    if not lines:
+        return ""
+
+    first_line = lines[0]
+
+    # Check for backticked word e.g. "Jisho result for `inryou`" or "Cambridge result for `run`"
+    backtick_match = re.search(r"`([^`]+)`", first_line)
+    if backtick_match:
+        return backtick_match.group(1).strip()
+
+    # Check for colon-separated line e.g. "飲: drink, smoke, take" or "漢字: China, Sino-"
+    if ":" in first_line:
+        before_colon, _ = first_line.split(":", 1)
+        cleaned_before = before_colon.strip()
+        # If the part before colon is 1-2 words and not excessively long, treat as keyword/kanji
+        if (
+            cleaned_before
+            and len(cleaned_before.split()) <= 2
+            and len(cleaned_before) <= 30
+        ):
+            return cleaned_before
+
+    # Fallback to the first word/token of the first line
+    words = first_line.split()
+    if words:
+        return words[0]
+    return first_line
+
+
+@dataclass(frozen=True)
+class ParsedXCommand:
+    sub_cmd: str | None
+    keyword: str
+
+
+def parse_x_command(
+    text: str,
+    reply_text: str | None = None,
+    available_commands: set[str] | None = None,
+) -> ParsedXCommand:
+    parts = text.strip().split()
+    args = parts[1:] if len(parts) > 1 else []
+
+    sub_cmd: str | None = None
+    keyword = ""
+
+    if (
+        available_commands
+        and args
+        and args[0].lstrip("/").lower() in available_commands
+    ):
+        sub_cmd = args[0].lstrip("/").lower()
+        args = args[1:]
+
+    if args:
+        keyword = " ".join(args).strip()
+    elif reply_text:
+        keyword = extract_keyword_from_text(reply_text)
+
+    return ParsedXCommand(sub_cmd=sub_cmd, keyword=keyword)
+
+
 class Dispatcher:
     def __init__(self, session: requests.Session) -> None:
         self.session = session
 
-    def dispatch_cam(self, text: str, chat_id: int, from_id: int) -> None:
-        _cam, keyword = text.split(" ", 1)
+    def dispatch_cam(
+        self,
+        text: str,
+        chat_id: int,
+        from_id: int,
+        reply_text: str | None = None,
+    ) -> None:
+        parts = text.split(" ", 1)
+        keyword = (
+            parts[1].strip()
+            if len(parts) > 1 and parts[1].strip()
+            else extract_keyword_from_text(reply_text or "")
+        )
+        if not keyword:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text="Usage: /cam <word> or reply to a message with /cam",
+            )
+            return
 
         try:
             result = dict_lookup.lookup_word(keyword)
@@ -339,8 +426,26 @@ class Dispatcher:
             )
             logger.info("UDS: served cam keyword %s", keyword)
 
-    def dispatch_fr(self, text: str, chat_id: int, from_id: int) -> None:
-        _fr, keyword = text.split(" ", 1)
+    def dispatch_fr(
+        self,
+        text: str,
+        chat_id: int,
+        from_id: int,
+        reply_text: str | None = None,
+    ) -> None:
+        parts = text.split(" ", 1)
+        keyword = (
+            parts[1].strip()
+            if len(parts) > 1 and parts[1].strip()
+            else extract_keyword_from_text(reply_text or "")
+        )
+        if not keyword:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text="Usage: /fr <word> or reply to a message with /fr",
+            )
+            return
 
         try:
             result = dict_lookup.lookup_word_fr(keyword)
@@ -438,14 +543,50 @@ class Dispatcher:
         send_message(session=self.session, chat_id=chat_id, text=f"{msg}\n{latest.url}")
         logger.info("served nikkeime")
 
-    def dispatch_lt(self, text: str, chat_id: int, from_id: int) -> None:
-        _lt, keyword = text.split(" ", 1)
+    def dispatch_lt(
+        self,
+        text: str,
+        chat_id: int,
+        from_id: int,
+        reply_text: str | None = None,
+    ) -> None:
+        parts = text.split(" ", 1)
+        keyword = (
+            parts[1].strip()
+            if len(parts) > 1 and parts[1].strip()
+            else extract_keyword_from_text(reply_text or "")
+        )
+        if not keyword:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text="Usage: /lt <word> or reply to a message with /lt",
+            )
+            return
         msg = llm.translate(keyword)
         send_message(session=self.session, chat_id=chat_id, text=msg[:300])
         logger.info(f"LLM translated {text}")
 
-    def dispatch_ji(self, text: str, chat_id: int, from_id: int) -> None:
-        _cam, keyword = text.split(" ", 1)
+    def dispatch_ji(
+        self,
+        text: str,
+        chat_id: int,
+        from_id: int,
+        reply_text: str | None = None,
+    ) -> None:
+        parts = text.split(" ", 1)
+        keyword = (
+            parts[1].strip()
+            if len(parts) > 1 and parts[1].strip()
+            else extract_keyword_from_text(reply_text or "")
+        )
+        if not keyword:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text="Usage: /ji <word> or reply to a message with /ji",
+            )
+            return
 
         try:
             result = jp_dict.search_jisho(keyword)
@@ -619,26 +760,108 @@ class Dispatcher:
                 text=jobs_str,
             )
 
-    def dispatch_x(self, text: str, chat_id: int, from_id: int) -> None:
-        _x, *cmd = text.split(" ")
+    def _get_available_commands(self) -> set[str]:
+        return {
+            name.removeprefix("dispatch_")
+            for name in dir(self)
+            if name.startswith("dispatch_")
+            and name not in {"dispatch_x", "dispatch_xj", "dispatch_ex"}
+        }
 
-        self.dispatch(" ".join(cmd), chat_id, from_id)
-        keyword = " ".join(cmd[1:])
+    def dispatch_x(
+        self,
+        text: str,
+        chat_id: int,
+        from_id: int,
+        reply_text: str | None = None,
+    ) -> None:
+        parsed = parse_x_command(
+            text,
+            reply_text=reply_text,
+            available_commands=self._get_available_commands(),
+        )
 
-        msg = llm.gen_example(keyword)
+        if not parsed.keyword:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text="Usage: /x <word>, /x <cmd> <word>, or reply to a message with /x",
+            )
+            return
+
+        if parsed.sub_cmd:
+            self.dispatch(f"{parsed.sub_cmd} {parsed.keyword}", chat_id, from_id)
+
+        msg = llm.gen_example(parsed.keyword)
         send_message(session=self.session, chat_id=chat_id, text=msg[:300])
-        logger.info(f"LLM x {text}")
+        logger.info("LLM x %s for keyword %s", text, parsed.keyword)
 
-    def dispatch(self, text: str, chat_id: int, from_id: int) -> None:
+    def dispatch_xj(
+        self,
+        text: str,
+        chat_id: int,
+        from_id: int,
+        reply_text: str | None = None,
+    ) -> None:
+        parsed = parse_x_command(
+            text,
+            reply_text=reply_text,
+            available_commands=self._get_available_commands(),
+        )
+
+        if not parsed.keyword:
+            send_message(
+                session=self.session,
+                chat_id=chat_id,
+                text="Usage: /xj <word>, /xj <cmd> <word>, or reply to a message with /xj",
+            )
+            return
+
+        if parsed.sub_cmd:
+            self.dispatch(f"{parsed.sub_cmd} {parsed.keyword}", chat_id, from_id)
+
+        sentences = jp_dict.search_jisho_sentences(parsed.keyword, session=self.session)
+        msg = jp_dict.format_jisho_sentences(parsed.keyword, sentences)
+        send_message(session=self.session, chat_id=chat_id, text=msg)
+        logger.info("Jisho sentences %s for keyword %s", text, parsed.keyword)
+
+    def dispatch_ex(
+        self,
+        text: str,
+        chat_id: int,
+        from_id: int,
+        reply_text: str | None = None,
+    ) -> None:
+        self.dispatch_xj(text, chat_id, from_id, reply_text=reply_text)
+
+    def dispatch(
+        self,
+        text: str,
+        chat_id: int,
+        from_id: int,
+        reply_text: str | None = None,
+    ) -> None:
         if not text or not text.strip():
-            logger.warn("Received empty message, skipping")
+            logger.warning("Received empty message, skipping")
             return
 
         cmd, *_ = text.split()
         pure_cmd = cmd.strip().lstrip("/")
-        func = getattr(self, f"dispatch_{pure_cmd}", print)
+        func = getattr(self, f"dispatch_{pure_cmd}", None)
         if func is None:
-            logger.warn(f"dispatch_{pure_cmd} method not exist, skip from {text}")
+            logger.warning("dispatch_%s method not exist, skip from %s", pure_cmd, text)
             return
-        logger.info(f"dispatching {func.__name__} from {text}")
-        func(text, chat_id, from_id)
+        logger.info(
+            "dispatching %s from %s", getattr(func, "__name__", str(func)), text
+        )
+
+        import inspect
+
+        try:
+            sig = inspect.signature(func)
+            if "reply_text" in sig.parameters:
+                func(text, chat_id, from_id, reply_text=reply_text)
+            else:
+                func(text, chat_id, from_id)
+        except (ValueError, TypeError):
+            func(text, chat_id, from_id)
