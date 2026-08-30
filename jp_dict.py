@@ -5,13 +5,97 @@ import sqlite3
 from dataclasses import dataclass
 
 import requests
-import requests_html
 
 
 # https://jisho.org/robots.txt
 DELAY = 10
 
 NUMBER_OF_YOJO_WORDS = 2136
+
+
+@dataclass(frozen=True)
+class JishoSentence:
+    japanese: str
+    english: str
+
+
+def _find_english_translation(translations: list) -> str:
+    """Find the first English translation text from a Tatoeba v1 translations list."""
+    fallback = ""
+    for trans in translations:
+        if not isinstance(trans, dict):
+            continue
+        text = str(trans.get("text", "")).strip()
+        if not text:
+            continue
+        if trans.get("lang") == "eng":
+            return text
+        if not fallback:
+            fallback = text
+    return fallback
+
+
+def parse_tatoeba_sentences_json(
+    data: dict, max_results: int = 3
+) -> list[JishoSentence]:
+    results: list[JishoSentence] = []
+    raw_val = data.get("data", [])
+    if not isinstance(raw_val, list):
+        return results
+
+    for item in raw_val:
+        if not isinstance(item, dict):
+            continue
+        jp_text = str(item.get("text", "")).strip()
+        if not jp_text:
+            continue
+
+        translations = item.get("translations", [])
+        en_text = _find_english_translation(translations) if isinstance(translations, list) else ""
+        if not en_text:
+            continue
+
+        results.append(JishoSentence(japanese=jp_text, english=en_text))
+        if len(results) >= max_results:
+            break
+
+    return results
+
+
+def search_jisho_sentences(
+    keyword: str, max_results: int = 3, session: requests.Session | None = None
+) -> list[JishoSentence]:
+    url = "https://api.tatoeba.org/v1/sentences"
+    params: dict[str, str | int] = {
+        "lang": "jpn",
+        "q": keyword,
+        "sort": "relevance",
+        "trans:lang": "eng",
+        "limit": max_results,
+    }
+    headers = {"User-Agent": "udsbot/1.0"}
+    try:
+        client = session or requests
+        resp = client.get(url, params=params, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return []
+        data = resp.json()
+        return parse_tatoeba_sentences_json(data, max_results=max_results)
+    except Exception:
+        return []
+
+
+def format_jisho_sentences(keyword: str, sentences: list[JishoSentence]) -> str:
+    if not sentences:
+        return f"No example sentences found for `{keyword}`."
+
+    lines = [f"Example sentences for `{keyword}`:"]
+    for idx, s in enumerate(sentences, start=1):
+        lines.append(f"{idx}. {s.japanese}\n   {s.english}")
+
+    url = f"https://tatoeba.org/en/sentences/search?from=jpn&to=eng&query={keyword}"
+    lines.append(url)
+    return "\n".join(lines)
 
 
 def search_jisho(word: str) -> dict:
