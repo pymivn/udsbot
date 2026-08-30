@@ -16,6 +16,19 @@ LLM_GEMINI_ENDPOINT: Final = "https://generativelanguage.googleapis.com/v1beta/m
     GEMINI_MODEL, GEMINI_API_KEY
 )
 
+
+def extract_gemini_text(resp: dict) -> str:
+    """Pure function: safely extract text from a Gemini API response."""
+    candidates = resp.get("candidates", [])
+    if not candidates:
+        return ""
+    content = candidates[0].get("content", {})
+    parts = content.get("parts", [])
+    if not parts:
+        return ""
+    return str(parts[0].get("text", "")).strip()
+
+
 SYSTEM_PROMPT_GEN_EXAMPLE: Final = """
 You are a multilingual language model specialized in generating clear and natural example sentences.
 Given a single word (in English or Japanese, NOT Chinese), generate a simple and appropriate example sentence that uses the word naturally.
@@ -78,9 +91,7 @@ def translate_sentence(s: str) -> str:
     }
 
     resp = session.post(LLM_GEMINI_ENDPOINT, json=payload).json()
-    msg = resp["candidates"][0]["content"]["parts"][0]["text"]
-
-    return msg
+    return extract_gemini_text(resp)
 
 
 def gen_example(word_def: str) -> str:
@@ -89,6 +100,4 @@ def gen_example(word_def: str) -> str:
         "contents": [{"parts": [{"text": f'write an example for "{word_def}"'}]}],
     }
     resp = session.post(LLM_GEMINI_ENDPOINT, json=payload).json()
-    msg = resp["candidates"][0]["content"]["parts"][0]["text"]
-
-    return msg
+    return extract_gemini_text(resp)
