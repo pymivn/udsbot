@@ -12,7 +12,7 @@
 | HTTP Client      | `requests` (synchronous)                                          |
 | Bot Architecture | Raw Telegram Bot API polling (no framework)                       |
 | LLM (local)      | Ollama (`gemma3:1b` at `localhost:11434`)                         |
-| LLM (cloud)      | Google Gemini API (default model: `gemini-2.5-flash`)             |
+| LLM (cloud)      | OpenRouter API (default model: `google/gemma-4-31b-it:free`)      |
 | Dictionary       | WordNet (`wn`) + `english-to-ipa` (fully offline)              |
 | Japanese         | Jisho.org API + in-memory SQLite kanji database                   |
 | Charting         | `pandas` + `plotly` (lazy-imported for crypto candlestick charts) |
@@ -31,7 +31,7 @@ bot.py                  ← Entry point: infinite polling loop (60s cycle), disp
 ├── commands.py         ← Dispatcher class (dynamic dispatch via getattr) + all command handlers
 │   ├── jp_dict.py      ← Jisho.org API client + in-memory SQLite kanji DB + KanjiService
 │   ├── jp_podcast.py   ← Nagara Nikkei podcast episode scraper (Apple Podcasts)
-│   ├── llm.py          ← Dual LLM backends: local Ollama + Google Gemini API
+│   ├── llm.py          ← Dual LLM backends: local Ollama + OpenRouter API
 │   ├── joyo_final.json ← Full Jōyō kanji dataset (~564KB, 2136 kanji by grade)
 │   ├── kanji.json      ← Sample Jisho API response (reference/documentation)
 │   └── message.json    ← Sample Telegram update message (reference/documentation)
@@ -63,7 +63,7 @@ The project uses a **flat module structure** — all Python files live at the re
 | `cronjob_config.py` | Pydantic models for type-safe config validation (discriminated union).     |
 | `jp_dict.py`        | Jisho.org API client, `KanjiService`, in-memory SQLite kanji DB.          |
 | `jp_podcast.py`     | Scrapes Apple Podcasts for Nagara Nikkei episodes.                         |
-| `llm.py`            | Dual LLM integration: local Ollama + Google Gemini API.                    |
+| `llm.py`            | Dual LLM integration: local Ollama + OpenRouter API.                       |
 | `joyo_final.json`   | Complete Jōyō kanji dataset (2136 kanji organized by grade 1–8).          |
 | `kanji.json`        | Sample Jisho API response structure (reference).                           |
 | `message.json`      | Sample Telegram update message structure (reference).                      |
@@ -86,8 +86,8 @@ The project uses a **flat module structure** — all Python files live at the re
 | `/aoc [topn]`         | `dispatch_aoc`      | Advent of Code 2024 private leaderboard                  |
 | `/jk`                 | `dispatch_jk`       | Generate a joke via local Ollama LLM                     |
 | `/lt <word>`          | `dispatch_lt`       | Define/translate a word via local Ollama LLM             |
-| `/nikkei`             | `dispatch_nikkei`   | Latest Nikkei podcast episode + Gemini translation       |
-| `/x [cmd] [word]`     | `dispatch_x`        | Generate example sentence via Gemini, or `/x ex <word>` for Tatoeba lookup (supports reply) |
+| `/nikkei`             | `dispatch_nikkei`   | Latest Nikkei podcast episode + LLM translation          |
+| `/x [cmd] [word]`     | `dispatch_x`        | Tatoeba example sentences (default), or `/x ai <word>` for LLM generation (supports reply) |
 | `/cron HH:MM <cmd>`   | `dispatch_cron`     | Add a scheduled cron job                                 |
 | `/delcron <UUID>`     | `dispatch_delcron`  | Delete a cron job by UUID                                |
 | `/listcron`           | `dispatch_listcron` | List user's cron jobs                                    |
@@ -111,7 +111,7 @@ The project uses a **flat module structure** — all Python files live at the re
 - **Secrets** are loaded from environment variables — never committed to the repo.
 - `config.py` exposes `BOT_TOKEN`, `TELEGRAM_BASE_URL`, and `OFFSET_FILE` as module-level constants.
 - `commands.py` also reads `WEATHER_TOKEN` and `AOC_SESSION` directly from environment.
-- `llm.py` reads `GEMINI_API_KEY` and `GEMINI_MODEL` from environment.
+- `llm.py` reads `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` from environment.
 
 ### Command Handlers
 
@@ -135,7 +135,7 @@ The backend is selected at import time based on `config.yaml`. Jobs are limited 
 
 Two backends serve different purposes:
 - **Ollama (local)**: `gemma3:1b` model at `localhost:11434` — used for jokes (`/jk`) and word definitions (`/lt`). Requires a running Ollama instance.
-- **Google Gemini (cloud)**: `gemini-2.5-flash` (configurable via `GEMINI_MODEL`) — used for Japanese translation (`/nikkei`) and example sentence generation (`/x`).
+- **OpenRouter (cloud)**: Dynamic multi-model fallback list with `openrouter/free` router (default: `google/gemma-4-31b-it:free`, `liquid/lfm-2.5-2.6b:free`, `google/gemma-4-26b-a4b-it:free`, `minimax/minimax-m3:free`, `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`, `minimax/minimax-m2.7:free`, followed by `openrouter/free` router fallback) — used for Japanese translation (`/nikkei`) and example sentence generation (`/x ai`). OpenAI-compatible chat completions API.
 
 ### Module-Level Side Effects
 
@@ -147,10 +147,9 @@ Be aware of initialization that happens at import time:
 ## Testing
 
 - **Framework**: `unittest` (standard library), **not pytest**.
-- **Test file**: `test_cronjob.py` (541 lines) — the only test file, covering the cron job module thoroughly.
-- **Coverage includes**: Job parsing, both SQL and JSON storage backends (with temp files), business logic with mocked storage, `run_cron` dispatch, management command exclusion.
-- **Mocking**: Uses `unittest.mock.patch` for mocking `cronjob.storage`, `uuid.uuid4`, `datetime.datetime`.
-- **Not tested**: `commands.py`, `bot.py`, `jp_dict.py`, `jp_podcast.py`, `llm.py`.
+- **Test files**: `test_cronjob.py`, `test_llm.py`, `test_commands.py`, `test_dict_lookup.py`, `test_jp_dict.py`.
+- **Coverage includes**: Job parsing, storage backends, LLM fallback & chat completions, command dispatching, dictionary lookups, Jisho and Kanji parsing.
+- **Mocking**: Uses `unittest.mock.patch` and `MagicMock` for external network/API requests and storage.
 - **Run tests**: `make test` (which runs `python3 -m unittest`).
 
 ## Build & Run
@@ -186,8 +185,8 @@ python bot.py
 | --------------- | -------- | -------------- | -------------------------------------------- |
 | `BOT_TOKEN`     | Yes      | `config.py`, `commands.py` | Telegram Bot API token              |
 | `WEATHER_TOKEN` | Yes      | `commands.py`  | OpenWeatherMap API key                       |
-| `GEMINI_API_KEY` | Yes     | `llm.py`       | Google Gemini API key                        |
-| `GEMINI_MODEL`  | No       | `llm.py`       | Gemini model name (default: `gemini-2.5-flash`) |
+| `OPENROUTER_API_KEY` | No      | `llm.py`       | OpenRouter API key (required for /x ai, /nikkei) |
+| `OPENROUTER_MODEL`  | No       | `llm.py`       | OpenRouter model or comma-separated fallback list (default: `google/gemma-4-31b-it:free,liquid/lfm-2.5-2.6b:free,google/gemma-4-26b-a4b-it:free,minimax/minimax-m3:free,nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free,minimax/minimax-m2.7:free`) |
 | `AOC_SESSION`   | No       | `commands.py`  | Advent of Code session cookie                |
 
 ## External Dependencies
@@ -210,7 +209,7 @@ python bot.py
 
 - **Ollama** must be running locally at `localhost:11434` with the `gemma3:1b` model for `/jk` and `/lt` commands.
 - State files: `/tmp/uds_telegrambot_offset` (update offset), `cronjobs.db` or `cronjobs.json` (cron storage).
-- Internet access for Telegram API, OpenWeatherMap, CoinGecko, WAQI, Jisho.org, Apple Podcasts, Google Gemini.
+- Internet access for Telegram API, OpenWeatherMap, CoinGecko, WAQI, Jisho.org, Apple Podcasts, OpenRouter.
 
 ## Guidelines for AI Agents
 

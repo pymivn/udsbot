@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 
 os.environ.setdefault("BOT_TOKEN", "DUMMY_BOT_TOKEN")
 os.environ.setdefault("WEATHER_TOKEN", "DUMMY_WEATHER_TOKEN")
-os.environ.setdefault("GEMINI_API_KEY", "DUMMY_GEMINI_API_KEY")
 
 import commands
 
