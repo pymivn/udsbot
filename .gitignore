@@ -137,3 +137,5 @@ chartimage.png
 #Cronjob
 cronjobs.json
 cronjobs.db
+yojo.db
+*.db

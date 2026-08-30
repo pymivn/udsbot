@@ -20,11 +20,20 @@ class JishoSentence:
     english: str
 
 
-def serialize_examples(examples: list[JishoSentence]) -> str:
-    """Pure function: serialize list of JishoSentence dataclasses to JSON string."""
-    return json.dumps(
-        [{"japanese": s.japanese, "english": s.english} for s in examples]
-    )
+def serialize_examples(
+    examples: list[JishoSentence] | list[dict[str, str]] | list[Any],
+) -> str:
+    """Pure function: serialize list of JishoSentence dataclasses or dicts to JSON string."""
+    items: list[dict[str, str]] = []
+    for s in examples:
+        if isinstance(s, JishoSentence):
+            items.append({"japanese": s.japanese, "english": s.english})
+        elif isinstance(s, dict):
+            jp = str(s.get("japanese", "")).strip()
+            en = str(s.get("english", "")).strip()
+            if jp and en:
+                items.append({"japanese": jp, "english": en})
+    return json.dumps(items)
 
 
 def deserialize_examples(raw_text: str | None) -> list[JishoSentence]:
@@ -493,46 +502,58 @@ def enrich_kanji_db_with_tatoeba(
 
 
 def main() -> None:
-    import os
+    import argparse
 
-    if not os.path.exists("joyo.json"):
-        joyo = {}
-        # grade:1: Taught in grade 1. You can use any number between 1 and 6 to indicate the grade school level the kanji is taught in. Using 8 you will find the kanji taught in junior high school.
-        # https://jisho.org/docs
-        for grade in [1, 2, 3, 4, 5, 6, 8]:
-            print("grade", grade)
-            joyo[grade] = list(fetch_jisho_grade_words(grade))
-            print(len(joyo[grade]), "words")
+    parser = argparse.ArgumentParser(
+        description="Jisho & Tatoeba kanji dataset and DB management."
+    )
+    parser.add_argument(
+        "--enrich",
+        action="store_true",
+        help="Enrich SQLite DB and joyo_final.json with Tatoeba example sentences.",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="Maximum number of kanji to enrich in this run (default: 50).",
+    )
+    parser.add_argument(
+        "--grade",
+        type=int,
+        default=None,
+        help="Specific grade level (1-8) to enrich.",
+    )
+    parser.add_argument(
+        "--db",
+        type=str,
+        default="yojo.db",
+        help="SQLite database path (default: yojo.db).",
+    )
+    parser.add_argument(
+        "--save-json",
+        action="store_true",
+        default=True,
+        help="Save enriched data back to joyo_final.json (default: True).",
+    )
 
-        with open("joyo.json", "wt") as f:
-            json.dump(joyo, f, indent=4)
-            print("Wrote joyo.json")
+    args = parser.parse_args()
 
-    # filter duplicate and remove words not in joyo
-    # https://en.wikipedia.org/wiki/Kanji#Total_number_of_kanji
-    d = json.load(open("joyo.json"))
-    words: set = set()
-    r: dict = {}
-    r = {k: [] for k in d}
-    for k, v in d.items():
-        for i in v:
-            if i["kanji"] in words:
-                continue
-            if len(words) == NUMBER_OF_YOJO_WORDS:
-                break
-            words.add(i["kanji"])
-            r[k].append(i)
-    for k, v in r.items():
-        print("Grade ", k, len(v), "words")
-
-    with open("joyo_final.json", "wt") as f:
-        json.dump(r, f, indent=4)
-        print("Wrote joyo_final.json")
-
-    conn = init_kanji_db(dbpath="yojo.db")
+    conn = init_kanji_db(dbpath=args.db)
     ks = KanjiService(conn)
-    print(ks.get_kanji(1, 0))
-    print(ks.get_kanji(2, 1))
+
+    if args.enrich:
+        print(
+            f"Enriching kanji DB ({args.db}) with Tatoeba examples (limit={args.limit}, grade={args.grade})..."
+        )
+        enriched = enrich_kanji_db_with_tatoeba(ks, grade=args.grade, limit=args.limit)
+        print(f"Enriched {enriched} kanji entries with example sentences.")
+        if args.save_json:
+            dump_kanji_db_to_json(ks, output_path="joyo_final.json")
+            print("Updated joyo_final.json with enriched examples.")
+    else:
+        print("Kanji DB sample lookup:")
+        print(format_kanji(ks.get_kanji(1, 1)))
 
 
 if __name__ == "__main__":

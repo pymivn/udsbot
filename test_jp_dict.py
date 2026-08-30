@@ -381,16 +381,32 @@ class TestParseJishoWordJson(unittest.TestCase):
         self.assertEqual(res["means"], [])
 
 
-class TestFetchKanjiExamples(unittest.TestCase):
-    @patch("jp_dict.search_jisho_sentences")
-    def test_fetch_kanji_examples(self, mock_search: MagicMock) -> None:
-        mock_search.return_value = [
-            jp_dict.JishoSentence(japanese="日が出る", english="The sun rises")
+class TestEnrichKanjiDb(unittest.TestCase):
+    @patch("jp_dict.fetch_kanji_examples")
+    def test_enrich_kanji_db_with_tatoeba(self, mock_fetch: MagicMock) -> None:
+        import sqlite3
+
+        mock_fetch.return_value = [
+            jp_dict.JishoSentence(japanese="満月", english="full moon")
         ]
-        res = jp_dict.fetch_kanji_examples("日", max_results=1)
-        mock_search.assert_called_once_with("日", max_results=1, session=None)
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0].japanese, "日が出る")
+        conn = sqlite3.connect(":memory:")
+        conn.execute(
+            "CREATE TABLE kanji_chars (id INTEGER PRIMARY KEY, kanji text, meaning text, reading text, grade text, url text, examples text);"
+        )
+        conn.execute(
+            "INSERT INTO kanji_chars(kanji, meaning, reading, grade, url, examples) VALUES (?, ?, ?, ?, ?, ?)",
+            ("月", "moon", "つき", "1", "url", ""),
+        )
+        conn.commit()
+        service = jp_dict.KanjiService(conn)
+        count = jp_dict.enrich_kanji_db_with_tatoeba(service, limit=1)
+        self.assertEqual(count, 1)
+        k = service.find_by_char("月")
+        self.assertIsNotNone(k)
+        if k:
+            self.assertEqual(len(k.examples), 1)
+            self.assertEqual(k.examples[0].japanese, "満月")
+        conn.close()
 
 
 if __name__ == "__main__":

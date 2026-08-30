@@ -23,3 +23,7 @@ setup-dicts:
 	uv run python -m wn download omw-fr
 	uv run python -m wn download omw-en:2.0
 
+enrich-kanji:
+	uv run python jp_dict.py --enrich --limit 50
+
+
