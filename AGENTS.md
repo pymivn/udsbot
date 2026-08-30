@@ -168,6 +168,7 @@ make setup-dicts
 make fmt          # ruff format *.py && ruff check *.py
 make mypy         # mypy --install-types --non-interactive --ignore-missing-imports *.py
 make test         # python3 -m unittest
+make audit        # uvx detect-secrets + gitleaks (optional) + uvx pip-audit + uvx semgrep
 
 # Run the bot
 python bot.py
@@ -208,7 +209,7 @@ python bot.py
 ## Runtime Requirements
 
 - **Ollama** must be running locally at `localhost:11434` with the `gemma3:1b` model for `/jk` and `/lt` commands.
-- State files: `/tmp/uds_telegrambot_offset` (update offset), `cronjobs.db` or `cronjobs.json` (cron storage).
+- State files: `/tmp/uds_telegrambot_offset` (update offset), `cronjobs.db` or `cronjobs.json` (cron storage), `.secrets.baseline` (detect-secrets baseline).
 - Internet access for Telegram API, OpenWeatherMap, CoinGecko, WAQI, Jisho.org, Apple Podcasts, OpenRouter.
 
 ## Guidelines for AI Agents
@@ -225,4 +226,5 @@ python bot.py
 10. **Dependencies**: Add new dependencies to `pyproject.toml`. The `uds` library is sourced from git via `[tool.uv.sources]`.
 11. **Ollama dependency**: Features using local Ollama should gracefully handle connection failures.
 12. **Lazy imports**: Heavy libraries (`pandas`, `plotly`) are lazy-imported inside functions to keep startup fast.
-13. **Security audit must include dependency health check**: When performing security audits, always check for deprecated, unmaintained, or vulnerable dependencies — scan `pyproject.toml`, `uv.lock`, and grep for lazy imports of packages not declared in `pyproject.toml`.
+13. **Security audit must run make audit**: When performing security audits, always execute `make audit` (which runs `detect-secrets` against `.secrets.baseline` and `pip-audit`), scan `pyproject.toml` / `uv.lock` for vulnerability/deprecation risks, and grep for lazy imports of undeclared packages.
+
