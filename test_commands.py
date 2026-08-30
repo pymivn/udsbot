@@ -201,21 +201,115 @@ class TestDispatcherCommands(unittest.TestCase):
         self.assertIn("飲料水 は 不足 している。", sent_text)
 
     @patch("commands.send_message")
+    @patch("commands.kanji_service.get_examples_for_text")
     @patch("commands.jp_dict.search_jisho")
     def test_dispatch_ji_reply(
-        self, mock_search: MagicMock, mock_send: MagicMock
+        self,
+        mock_search_jisho: MagicMock,
+        mock_get_examples: MagicMock,
+        mock_send: MagicMock,
     ) -> None:
-        mock_search.return_value = {
+        mock_search_jisho.return_value = {
             "url": "https://jisho.org/word/飲む",
             "reading": "飲:の.む",
             "means": ["to drink"],
         }
+        mock_get_examples.return_value = [
+            commands.jp_dict.JishoSentence(
+                japanese="水を飲む。", english="Drink water."
+            )
+        ]
         reply = "飲: drink, smoke, take\nイン\nhttps://jisho.org"
         self.dispatcher.dispatch_ji("/ji", chat_id=123, from_id=456, reply_text=reply)
 
-        mock_search.assert_called_once_with("飲")
+        mock_search_jisho.assert_called_once_with("飲")
+        mock_get_examples.assert_called_once_with("飲", max_results=2)
         mock_send.assert_called_once()
-        self.assertIn("Jisho result for `飲`", mock_send.call_args[1]["text"])
+        sent_text = mock_send.call_args[1]["text"]
+        self.assertIn("Jisho result for `飲`", sent_text)
+        self.assertIn("Reading: 飲:の.む", sent_text)
+        self.assertIn("1. to drink", sent_text)
+        self.assertIn("Examples:", sent_text)
+        self.assertIn("1. 水を飲む。", sent_text)
+        self.assertIn("   Drink water.", sent_text)
+        self.assertIn("https://jisho.org/word/飲む", sent_text)
+
+    @patch("commands.send_message")
+    @patch("commands.kanji_service.get_examples_for_text")
+    @patch("commands.jp_dict.search_jisho")
+    def test_dispatch_ji_direct_word_with_examples(
+        self,
+        mock_search_jisho: MagicMock,
+        mock_get_examples: MagicMock,
+        mock_send: MagicMock,
+    ) -> None:
+        mock_search_jisho.return_value = {
+            "url": "https://jisho.org/word/飲む",
+            "reading": "飲:の.む",
+            "means": ["to drink"],
+        }
+        mock_get_examples.return_value = [
+            commands.jp_dict.JishoSentence(
+                japanese="水を飲む。", english="Drink water."
+            )
+        ]
+        self.dispatcher.dispatch_ji("/ji 飲む", chat_id=123, from_id=456)
+
+        mock_search_jisho.assert_called_once_with("飲む")
+        mock_get_examples.assert_called_once_with("飲む", max_results=2)
+        mock_send.assert_called_once()
+        sent_text = mock_send.call_args[1]["text"]
+        self.assertIn("Jisho result for `飲む`", sent_text)
+        self.assertIn("Examples:", sent_text)
+
+    @patch("commands.send_message")
+    @patch("commands.kanji_service.get_examples_for_text")
+    @patch("commands.jp_dict.search_jisho")
+    def test_dispatch_ji_direct_word_no_examples(
+        self,
+        mock_search_jisho: MagicMock,
+        mock_get_examples: MagicMock,
+        mock_send: MagicMock,
+    ) -> None:
+        mock_search_jisho.return_value = {
+            "url": "https://jisho.org/word/飲む",
+            "reading": "飲:の.む",
+            "means": ["to drink"],
+        }
+        mock_get_examples.return_value = []
+        self.dispatcher.dispatch_ji("/ji 飲む", chat_id=123, from_id=456)
+
+        mock_get_examples.assert_called_once_with("飲む", max_results=2)
+        mock_send.assert_called_once()
+        sent_text = mock_send.call_args[1]["text"]
+        self.assertIn("Jisho result for `飲む`", sent_text)
+        self.assertNotIn("Examples:", sent_text)
+
+        mock_send.assert_called_once()
+        sent_text = mock_send.call_args[1]["text"]
+        self.assertIn("Jisho result for `飲む`", sent_text)
+        self.assertNotIn("Examples:", sent_text)
+
+    @patch("commands.kanji_service.get_kanji")
+    def test_kanji_helper_with_examples(self, mock_get_kanji: MagicMock) -> None:
+        mock_get_kanji.return_value = commands.jp_dict.Kanji(
+            char="日",
+            meaning="day, sun",
+            reading="Kun: ひ On: ニチ",
+            grade="1",
+            url="https://jisho.org/search/日%20%23grade:1",
+            examples=[
+                commands.jp_dict.JishoSentence(
+                    japanese="日が出る", english="The sun rises"
+                )
+            ],
+        )
+        msg = commands.kanji(grade=1, nth=1)
+        self.assertIn("日: day, sun", msg)
+        self.assertIn("Kun: ひ On: ニチ", msg)
+        self.assertIn("Examples:", msg)
+        self.assertIn("1. 日が出る", msg)
+        self.assertIn("https://jisho.org/search/日%20%23grade:1", msg)
 
     @patch("commands.send_message")
     @patch("commands.dict_lookup.lookup_word")

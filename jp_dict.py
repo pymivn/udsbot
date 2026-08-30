@@ -2,7 +2,8 @@ import os
 import json
 import time
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
 import requests
 
@@ -17,6 +18,33 @@ NUMBER_OF_YOJO_WORDS = 2136
 class JishoSentence:
     japanese: str
     english: str
+
+
+def serialize_examples(examples: list[JishoSentence]) -> str:
+    """Pure function: serialize list of JishoSentence dataclasses to JSON string."""
+    return json.dumps(
+        [{"japanese": s.japanese, "english": s.english} for s in examples]
+    )
+
+
+def deserialize_examples(raw_text: str | None) -> list[JishoSentence]:
+    """Pure function: deserialize JSON string to list of JishoSentence dataclasses."""
+    if not raw_text or not raw_text.strip():
+        return []
+    try:
+        data = json.loads(raw_text)
+        if not isinstance(data, list):
+            return []
+        results: list[JishoSentence] = []
+        for item in data:
+            if isinstance(item, dict):
+                jp = str(item.get("japanese", "")).strip()
+                en = str(item.get("english", "")).strip()
+                if jp and en:
+                    results.append(JishoSentence(japanese=jp, english=en))
+        return results
+    except Exception:
+        return []
 
 
 def _find_english_translation(translations: list) -> str:
@@ -102,25 +130,93 @@ def format_jisho_sentences(keyword: str, sentences: list[JishoSentence]) -> str:
     return "\n".join(lines)
 
 
-def search_jisho(word: str) -> dict:
-    resp = requests.get(f"https://jisho.org/api/v1/search/words?keyword={word}").json()
-    data = resp["data"]
-    for result in data:
-        # return only the first result if exists
-        url = "https://jisho.org/word/{}".format(result["slug"])
-        reading = ", ".join(
-            i.get("word", "") + ":" + i.get("reading", "no reading")
-            for i in result["japanese"]
-        )
-        means = [", ".join(s["english_definitions"]) for s in result["senses"]]
+def _extract_japanese_reading(japanese_list: list) -> str:
+    """Extract comma-separated word:reading pairs from Jisho japanese list."""
+    reading_parts: list[str] = []
+    for item in japanese_list:
+        if not isinstance(item, dict):
+            continue
+        word = str(item.get("word", ""))
+        reading = str(item.get("reading", "no reading"))
+        reading_parts.append(f"{word}:{reading}")
+    return ", ".join(reading_parts)
 
-        res = {
+
+def _extract_senses_meanings(senses: list) -> list[str]:
+    """Extract English definitions list from Jisho senses list."""
+    means: list[str] = []
+    for sense in senses:
+        if not isinstance(sense, dict):
+            continue
+        defs = sense.get("english_definitions", [])
+        if isinstance(defs, list):
+            means.append(", ".join(defs))
+    return means
+
+
+def parse_jisho_word_json(data: dict) -> dict[str, Any]:
+    """Pure function: parse Jisho API word search response JSON into dictionary."""
+    results = data.get("data", [])
+    if not isinstance(results, list):
+        return {"url": "", "reading": "", "means": []}
+
+    for result in results:
+        if not isinstance(result, dict):
+            continue
+        url = "https://jisho.org/word/{}".format(result.get("slug", ""))
+        raw_jp = result.get("japanese", [])
+        reading = _extract_japanese_reading(raw_jp) if isinstance(raw_jp, list) else ""
+
+        raw_senses = result.get("senses", [])
+        means = (
+            _extract_senses_meanings(raw_senses) if isinstance(raw_senses, list) else []
+        )
+
+        return {
             "url": url,
             "reading": reading,
             "means": means,
         }
-        return res
-    return {"url": "", "reading": "", "means": ""}
+    return {"url": "", "reading": "", "means": []}
+
+
+def search_jisho(word: str) -> dict:
+    resp = requests.get(f"https://jisho.org/api/v1/search/words?keyword={word}").json()
+    return parse_jisho_word_json(resp)
+
+
+def format_jisho_result(
+    keyword: str,
+    reading: str,
+    meanings: list[str],
+    url: str,
+    sentences: list[JishoSentence] | None = None,
+    max_meanings: int = 5,
+    max_examples: int = 2,
+) -> str:
+    """Pure function: format Jisho word lookup result with definitions and optional Tatoeba examples."""
+    lines: list[str] = [f"Jisho result for `{keyword}`"]
+    if reading:
+        lines.append(f"Reading: {reading}")
+
+    EACH_MEANING_LIMIT = 160
+    for idx, meaning in enumerate(meanings):
+        if idx == max_meanings:
+            lines.append("...")
+            break
+        if len(meaning) > EACH_MEANING_LIMIT:
+            meaning = f"{meaning[:EACH_MEANING_LIMIT]}..."
+        lines.append(f"{idx + 1}. {meaning}")
+
+    if sentences:
+        lines.append("\nExamples:")
+        for idx, s in enumerate(sentences[:max_examples], start=1):
+            lines.append(f"{idx}. {s.japanese}\n   {s.english}")
+
+    if url:
+        lines.append(url)
+
+    return "\n".join(lines)
 
 
 def parse_kanji_node(html_text: str) -> dict[str, str]:
@@ -190,12 +286,21 @@ def init_kanji_db(dbpath: str) -> sqlite3.Connection:
     conn = sqlite3.connect(dbpath)
 
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS kanji_chars (id INTEGER PRIMARY KEY, kanji text, meaning text, reading text, grade text, url text);"
+        "CREATE TABLE IF NOT EXISTS kanji_chars (id INTEGER PRIMARY KEY, kanji text, meaning text, reading text, grade text, url text, examples text);"
     )
     conn.executemany(
-        "INSERT INTO kanji_chars(kanji, meaning, reading, grade, url) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO kanji_chars(kanji, meaning, reading, grade, url, examples) VALUES (?, ?, ?, ?, ?, ?)",
         (
-            (i["kanji"], i["meaning"], i["reading"], grade, i["url"])
+            (
+                i["kanji"],
+                i["meaning"],
+                i["reading"],
+                str(grade),
+                i["url"],
+                serialize_examples(i.get("examples", []))
+                if isinstance(i.get("examples"), list)
+                else "",
+            )
             for grade, v in ws.items()
             for i in v
         ),
@@ -217,10 +322,32 @@ class Kanji:
     reading: str
     grade: str
     url: str
+    examples: list[JishoSentence] = field(default_factory=list)
+
+
+def format_kanji(k: Kanji, max_examples: int = 2) -> str:
+    """Pure function: format Kanji dataclass with meaning, reading, and optional examples."""
+    lines: list[str] = [f"{k.char}: {k.meaning}", k.reading]
+    if k.examples:
+        lines.append("Examples:")
+        for idx, s in enumerate(k.examples[:max_examples], start=1):
+            lines.append(f"{idx}. {s.japanese}\n   {s.english}")
+    if k.url:
+        lines.append(k.url)
+    return "\n".join(lines)
+
+
+def fetch_kanji_examples(
+    kanji_char: str,
+    max_results: int = 2,
+    session: requests.Session | None = None,
+) -> list[JishoSentence]:
+    """Fetch Tatoeba example sentences for a kanji character."""
+    return search_jisho_sentences(kanji_char, max_results=max_results, session=session)
 
 
 class KanjiService:
-    def __init__(self, conn):
+    def __init__(self, conn: sqlite3.Connection):
         self.db = conn
 
     def chars_count_by_grade(self) -> dict[str, int]:
@@ -239,11 +366,130 @@ class KanjiService:
         nth = nth % grades_chars[str(grade)]
 
         r = self.db.execute(
-            "SELECT kanji, meaning, reading, grade, url FROM kanji_chars WHERE grade=? LIMIT 1 OFFSET ? ",
-            (grade, nth),
+            "SELECT kanji, meaning, reading, grade, url, examples FROM kanji_chars WHERE grade=? LIMIT 1 OFFSET ? ",
+            (str(grade), nth),
         ).fetchone()
         url = "{}%20%23grade:{}".format(r[4], grade)
-        return Kanji(char=r[0], meaning=r[1], reading=r[2], grade=r[3], url=url)
+        examples = deserialize_examples(r[5]) if len(r) > 5 else []
+        return Kanji(
+            char=r[0],
+            meaning=r[1],
+            reading=r[2],
+            grade=r[3],
+            url=url,
+            examples=examples,
+        )
+
+    def find_by_char(self, char: str) -> Kanji | None:
+        r = self.db.execute(
+            "SELECT kanji, meaning, reading, grade, url, examples FROM kanji_chars WHERE kanji=? LIMIT 1",
+            (char,),
+        ).fetchone()
+        if not r:
+            return None
+        url = "{}%20%23grade:{}".format(r[4], r[3])
+        examples = deserialize_examples(r[5]) if len(r) > 5 else []
+        return Kanji(
+            char=r[0],
+            meaning=r[1],
+            reading=r[2],
+            grade=r[3],
+            url=url,
+            examples=examples,
+        )
+
+    def save_examples(self, char: str, examples: list[JishoSentence]) -> None:
+        examples_json = serialize_examples(examples)
+        self.db.execute(
+            "UPDATE kanji_chars SET examples=? WHERE kanji=?",
+            (examples_json, char),
+        )
+        self.db.commit()
+
+    def get_examples_for_text(
+        self, text: str, max_results: int = 2
+    ) -> list[JishoSentence]:
+        """Retrieve cached Tatoeba example sentences for kanji character(s) in text from SQLite DB."""
+        if not text or not text.strip():
+            return []
+
+        # First try direct match
+        direct = self.find_by_char(text.strip())
+        if direct and direct.examples:
+            return direct.examples[:max_results]
+
+        # Try finding kanji characters contained in the text
+        results: list[JishoSentence] = []
+        seen: set[str] = set()
+        for ch in text:
+            if ch in seen:
+                continue
+            seen.add(ch)
+            k = self.find_by_char(ch)
+            if k and k.examples:
+                for s in k.examples:
+                    if s not in results:
+                        results.append(s)
+                    if len(results) >= max_results:
+                        return results
+        return results
+
+
+def dump_kanji_db_to_dict(service: KanjiService) -> dict[str, list[dict[str, Any]]]:
+    """Dump all kanji from DB to dictionary grouped by grade."""
+    rows = service.db.execute(
+        "SELECT kanji, meaning, reading, grade, url, examples FROM kanji_chars ORDER BY id ASC"
+    ).fetchall()
+    result: dict[str, list[dict[str, Any]]] = {}
+    for kanji, meaning, reading, grade, url, examples_raw in rows:
+        examples = deserialize_examples(examples_raw)
+        entry: dict[str, Any] = {
+            "kanji": kanji,
+            "meaning": meaning,
+            "reading": reading,
+            "url": url,
+            "examples": [
+                {"japanese": s.japanese, "english": s.english} for s in examples
+            ],
+        }
+        grade_str = str(grade)
+        if grade_str not in result:
+            result[grade_str] = []
+        result[grade_str].append(entry)
+    return result
+
+
+def dump_kanji_db_to_json(
+    service: KanjiService, output_path: str = "joyo_final.json"
+) -> None:
+    """Save all kanji and their examples from DB to JSON file."""
+    data = dump_kanji_db_to_dict(service)
+    with open(output_path, "wt") as f:
+        json.dump(data, f, indent=4)
+
+
+def enrich_kanji_db_with_tatoeba(
+    service: KanjiService,
+    grade: int | None = None,
+    limit: int = 10,
+    session: requests.Session | None = None,
+) -> int:
+    """Populate missing examples for kanji in the database using Tatoeba API."""
+    query = "SELECT kanji FROM kanji_chars WHERE examples IS NULL OR examples = '' OR examples = '[]'"
+    params: list[Any] = []
+    if grade is not None:
+        query += " AND grade = ?"
+        params.append(str(grade))
+    query += " LIMIT ?"
+    params.append(limit)
+
+    rows = service.db.execute(query, params).fetchall()
+    count = 0
+    for (char,) in rows:
+        sentences = fetch_kanji_examples(char, max_results=2, session=session)
+        service.save_examples(char, sentences)
+        count += 1
+    return count
 
 
 def main() -> None:

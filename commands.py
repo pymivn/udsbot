@@ -313,7 +313,7 @@ def kanji(grade: int = 2, nth: int = -1) -> str:
         nth = random.randrange(jp_dict.NUMBER_OF_YOJO_WORDS)
     k = kanji_service.get_kanji(grade=grade, nth=nth)
 
-    return "{}: {}\n{}\n{}".format(k.char, k.meaning, k.reading, k.url)
+    return jp_dict.format_kanji(k)
 
 
 def extract_keyword_from_text(text: str) -> str:
@@ -590,19 +590,26 @@ class Dispatcher:
 
         try:
             result = jp_dict.search_jisho(keyword)
-            url, ipa, meanings = (
+            url, reading, meanings = (
                 result["url"],
                 result["reading"],
                 result["means"],
             )
+            sentences = kanji_service.get_examples_for_text(keyword, max_results=2)
         except Exception:
             logger.exception(keyword)
         else:
-            msg = fit_meanings_to_message(url, meanings)
+            msg = jp_dict.format_jisho_result(
+                keyword=keyword,
+                reading=reading,
+                meanings=meanings,
+                url=url,
+                sentences=sentences,
+            )
             send_message(
                 session=self.session,
                 chat_id=chat_id,
-                text=f"Jisho result for `{keyword}`\nReading: {ipa}\n" + msg,
+                text=msg,
             )
             logger.info("Jisho: served ji keyword %s", keyword)
 
