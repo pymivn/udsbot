@@ -106,11 +106,11 @@ class TestDispatcherCommands(unittest.TestCase):
 
     @patch("commands.send_message")
     @patch("commands.llm.gen_example", return_value="私は水を一杯飲みます。")
-    def test_dispatch_x_standalone_reply(
+    def test_dispatch_x_ai_reply(
         self, mock_gen: MagicMock, mock_send: MagicMock
     ) -> None:
         reply = "飲: drink, smoke, take\nイン, の.む\nhttps://jisho.org"
-        self.dispatcher.dispatch_x("/x", chat_id=123, from_id=456, reply_text=reply)
+        self.dispatcher.dispatch_x("/x ai", chat_id=123, from_id=456, reply_text=reply)
 
         mock_gen.assert_called_once_with("飲")
         mock_send.assert_called_once_with(
@@ -121,10 +121,10 @@ class TestDispatcherCommands(unittest.TestCase):
 
     @patch("commands.send_message")
     @patch("commands.llm.gen_example", return_value="She felt happy.")
-    def test_dispatch_x_direct_word(
+    def test_dispatch_x_ai_direct_word(
         self, mock_gen: MagicMock, mock_send: MagicMock
     ) -> None:
-        self.dispatcher.dispatch_x("/x happy", chat_id=123, from_id=456)
+        self.dispatcher.dispatch_x("/x ai happy", chat_id=123, from_id=456)
 
         mock_gen.assert_called_once_with("happy")
         mock_send.assert_called_once_with(
@@ -134,20 +134,23 @@ class TestDispatcherCommands(unittest.TestCase):
         )
 
     @patch("commands.send_message")
-    @patch("commands.llm.gen_example", return_value="私は毎日飲料水を飲みます。")
+    @patch(
+        "commands.jp_dict.search_jisho_sentences",
+        return_value=[
+            commands.jp_dict.JishoSentence(
+                japanese="飲料水 は 不足 している。",
+                english="Drinking water is in short supply.",
+            )
+        ],
+    )
     def test_dispatch_x_with_subcmd(
-        self, mock_gen: MagicMock, mock_send: MagicMock
+        self, mock_search: MagicMock, mock_send: MagicMock
     ) -> None:
         with patch.object(self.dispatcher, "dispatch") as mock_dispatch:
             self.dispatcher.dispatch_x("/x ji 飲料", chat_id=123, from_id=456)
 
             mock_dispatch.assert_called_once_with("ji 飲料", 123, 456)
-            mock_gen.assert_called_once_with("飲料")
-            mock_send.assert_called_once_with(
-                session=self.mock_session,
-                chat_id=123,
-                text="私は毎日飲料水を飲みます。",
-            )
+            mock_search.assert_called_once_with("飲料", session=self.mock_session)
 
     @patch("commands.send_message")
     def test_dispatch_x_no_keyword_shows_usage(self, mock_send: MagicMock) -> None:
@@ -165,11 +168,11 @@ class TestDispatcherCommands(unittest.TestCase):
             )
         ],
     )
-    def test_dispatch_x_ex_reply(
+    def test_dispatch_x_default_reply(
         self, mock_search: MagicMock, mock_send: MagicMock
     ) -> None:
         reply = "飲: drink, smoke, take\nイン, の.む\nhttps://jisho.org"
-        self.dispatcher.dispatch_x("/x ex", chat_id=123, from_id=456, reply_text=reply)
+        self.dispatcher.dispatch_x("/x", chat_id=123, from_id=456, reply_text=reply)
 
         mock_search.assert_called_once_with("飲", session=self.mock_session)
         mock_send.assert_called_once()
@@ -187,10 +190,10 @@ class TestDispatcherCommands(unittest.TestCase):
             )
         ],
     )
-    def test_dispatch_x_ex_direct_word(
+    def test_dispatch_x_default_direct_word(
         self, mock_search: MagicMock, mock_send: MagicMock
     ) -> None:
-        self.dispatcher.dispatch_x("/x ex 飲料", chat_id=123, from_id=456)
+        self.dispatcher.dispatch_x("/x 飲料", chat_id=123, from_id=456)
 
         mock_search.assert_called_once_with("飲料", session=self.mock_session)
         mock_send.assert_called_once()

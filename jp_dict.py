@@ -51,7 +51,11 @@ def parse_tatoeba_sentences_json(
             continue
 
         translations = item.get("translations", [])
-        en_text = _find_english_translation(translations) if isinstance(translations, list) else ""
+        en_text = (
+            _find_english_translation(translations)
+            if isinstance(translations, list)
+            else ""
+        )
         if not en_text:
             continue
 
