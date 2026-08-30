@@ -778,7 +778,7 @@ class Dispatcher:
         parsed = parse_x_command(
             text,
             reply_text=reply_text,
-            available_commands=self._get_available_commands(),
+            available_commands=self._get_available_commands() | {"ex"},
         )
 
         if not parsed.keyword:
@@ -789,50 +789,23 @@ class Dispatcher:
             )
             return
 
-        if parsed.sub_cmd:
+        is_tatoeba = parsed.sub_cmd == "ex"
+
+        if parsed.sub_cmd and not is_tatoeba:
             self.dispatch(f"{parsed.sub_cmd} {parsed.keyword}", chat_id, from_id)
 
-        msg = llm.gen_example(parsed.keyword)
-        send_message(session=self.session, chat_id=chat_id, text=msg[:300])
-        logger.info("LLM x %s for keyword %s", text, parsed.keyword)
-
-    def dispatch_xj(
-        self,
-        text: str,
-        chat_id: int,
-        from_id: int,
-        reply_text: str | None = None,
-    ) -> None:
-        parsed = parse_x_command(
-            text,
-            reply_text=reply_text,
-            available_commands=self._get_available_commands(),
-        )
-
-        if not parsed.keyword:
-            send_message(
-                session=self.session,
-                chat_id=chat_id,
-                text="Usage: /xj <word>, /xj <cmd> <word>, or reply to a message with /xj",
+        if is_tatoeba:
+            sentences = jp_dict.search_jisho_sentences(
+                parsed.keyword, session=self.session
             )
-            return
+            msg = jp_dict.format_jisho_sentences(parsed.keyword, sentences)
+        else:
+            msg = llm.gen_example(parsed.keyword)
 
-        if parsed.sub_cmd:
-            self.dispatch(f"{parsed.sub_cmd} {parsed.keyword}", chat_id, from_id)
-
-        sentences = jp_dict.search_jisho_sentences(parsed.keyword, session=self.session)
-        msg = jp_dict.format_jisho_sentences(parsed.keyword, sentences)
-        send_message(session=self.session, chat_id=chat_id, text=msg)
-        logger.info("Jisho sentences %s for keyword %s", text, parsed.keyword)
-
-    def dispatch_ex(
-        self,
-        text: str,
-        chat_id: int,
-        from_id: int,
-        reply_text: str | None = None,
-    ) -> None:
-        self.dispatch_xj(text, chat_id, from_id, reply_text=reply_text)
+        send_message(session=self.session, chat_id=chat_id, text=msg[:300])
+        logger.info(
+            "x %s for keyword %s", "tatoeba" if is_tatoeba else "gemini", parsed.keyword
+        )
 
     def dispatch(
         self,

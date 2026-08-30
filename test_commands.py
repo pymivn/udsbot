@@ -165,11 +165,11 @@ class TestDispatcherCommands(unittest.TestCase):
             )
         ],
     )
-    def test_dispatch_xj_reply(
+    def test_dispatch_x_ex_reply(
         self, mock_search: MagicMock, mock_send: MagicMock
     ) -> None:
         reply = "飲: drink, smoke, take\nイン, の.む\nhttps://jisho.org"
-        self.dispatcher.dispatch_xj("/xj", chat_id=123, from_id=456, reply_text=reply)
+        self.dispatcher.dispatch_x("/x ex", chat_id=123, from_id=456, reply_text=reply)
 
         mock_search.assert_called_once_with("飲", session=self.mock_session)
         mock_send.assert_called_once()
@@ -187,10 +187,10 @@ class TestDispatcherCommands(unittest.TestCase):
             )
         ],
     )
-    def test_dispatch_xj_direct_word(
+    def test_dispatch_x_ex_direct_word(
         self, mock_search: MagicMock, mock_send: MagicMock
     ) -> None:
-        self.dispatcher.dispatch_xj("/xj 飲料", chat_id=123, from_id=456)
+        self.dispatcher.dispatch_x("/x ex 飲料", chat_id=123, from_id=456)
 
         mock_search.assert_called_once_with("飲料", session=self.mock_session)
         mock_send.assert_called_once()
