@@ -1,6 +1,9 @@
+import logging
 import requests
 import os
 from typing import Final
+
+logger = logging.getLogger(__name__)
 
 
 session: Final = requests.Session()
@@ -21,10 +24,12 @@ def extract_gemini_text(resp: dict) -> str:
     """Pure function: safely extract text from a Gemini API response."""
     candidates = resp.get("candidates", [])
     if not candidates:
+        logger.error("Gemini API: no candidates in response: %s", resp)
         return ""
     content = candidates[0].get("content", {})
     parts = content.get("parts", [])
     if not parts:
+        logger.error("Gemini API: no parts in candidate: %s", candidates[0])
         return ""
     return str(parts[0].get("text", "")).strip()
 
