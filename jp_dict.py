@@ -115,15 +115,22 @@ def search_jisho_sentences(
         "limit": max_results,
     }
     headers = {"User-Agent": "udsbot/1.0"}
-    try:
-        client = session or requests
-        resp = client.get(url, params=params, headers=headers, timeout=10)
-        if resp.status_code != 200:
-            return []
-        data = resp.json()
-        return parse_tatoeba_sentences_json(data, max_results=max_results)
-    except Exception:
-        return []
+    client = session or requests
+    for attempt in range(5):
+        try:
+            resp = client.get(url, params=params, headers=headers, timeout=15)
+            if resp.status_code == 429:
+                time.sleep(2.0 * (attempt + 1))
+                continue
+            if resp.status_code != 200:
+                return []
+            data = resp.json()
+            return parse_tatoeba_sentences_json(data, max_results=max_results)
+        except Exception:
+            if attempt == 4:
+                return []
+            time.sleep(1.0)
+    return []
 
 
 def format_jisho_sentences(keyword: str, sentences: list[JishoSentence]) -> str:
@@ -480,7 +487,8 @@ def dump_kanji_db_to_json(
 def enrich_kanji_db_with_tatoeba(
     service: KanjiService,
     grade: int | None = None,
-    limit: int = 10,
+    limit: int | None = None,
+    max_workers: int = 2,
     session: requests.Session | None = None,
 ) -> int:
     """Populate missing examples for kanji in the database using Tatoeba API."""
@@ -489,15 +497,44 @@ def enrich_kanji_db_with_tatoeba(
     if grade is not None:
         query += " AND grade = ?"
         params.append(str(grade))
-    query += " LIMIT ?"
-    params.append(limit)
+    if limit is not None and limit > 0:
+        query += " LIMIT ?"
+        params.append(limit)
 
     rows = service.db.execute(query, params).fetchall()
+    if not rows:
+        return 0
+
+    chars = [char for (char,) in rows]
     count = 0
-    for (char,) in rows:
-        sentences = fetch_kanji_examples(char, max_results=2, session=session)
-        service.save_examples(char, sentences)
-        count += 1
+
+    if max_workers <= 1:
+        s = session or requests.Session()
+        for char in chars:
+            sentences = fetch_kanji_examples(char, max_results=2, session=s)
+            service.save_examples(char, sentences)
+            count += 1
+            if count % 20 == 0 or count == len(chars):
+                print(f"Enriched {count}/{len(chars)} kanji entries...")
+            time.sleep(0.3)
+    else:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def fetch_one(char: str) -> tuple[str, list[JishoSentence]]:
+            s = requests.Session()
+            time.sleep(0.25)
+            sentences = fetch_kanji_examples(char, max_results=2, session=s)
+            return char, sentences
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(fetch_one, char): char for char in chars}
+            for future in as_completed(futures):
+                char, sentences = future.result()
+                service.save_examples(char, sentences)
+                count += 1
+                if count % 50 == 0 or count == len(chars):
+                    print(f"Enriched {count}/{len(chars)} kanji entries...")
+
     return count
 
 
@@ -513,10 +550,21 @@ def main() -> None:
         help="Enrich SQLite DB and joyo_final.json with Tatoeba example sentences.",
     )
     parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Enrich ALL remaining kanji in the database.",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=50,
         help="Maximum number of kanji to enrich in this run (default: 50).",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=2,
+        help="Number of concurrent worker threads (default: 2).",
     )
     parser.add_argument(
         "--grade",
@@ -542,11 +590,14 @@ def main() -> None:
     conn = init_kanji_db(dbpath=args.db)
     ks = KanjiService(conn)
 
-    if args.enrich:
+    if args.enrich or args.all:
+        eff_limit = None if args.all or args.limit <= 0 else args.limit
         print(
-            f"Enriching kanji DB ({args.db}) with Tatoeba examples (limit={args.limit}, grade={args.grade})..."
+            f"Enriching kanji DB ({args.db}) with Tatoeba examples (limit={eff_limit}, grade={args.grade}, workers={args.workers})..."
         )
-        enriched = enrich_kanji_db_with_tatoeba(ks, grade=args.grade, limit=args.limit)
+        enriched = enrich_kanji_db_with_tatoeba(
+            ks, grade=args.grade, limit=eff_limit, max_workers=args.workers
+        )
         print(f"Enriched {enriched} kanji entries with example sentences.")
         if args.save_json:
             dump_kanji_db_to_json(ks, output_path="joyo_final.json")
