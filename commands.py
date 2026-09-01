@@ -145,7 +145,7 @@ def get_aqi_hcm() -> tuple:
     url = "https://airnet.waqi.info/airnet/map/bounds"
 
     tz_hcm = datetime.timezone(datetime.timedelta(hours=7))
-    current_time = datetime.datetime.utcnow().isoformat()
+    current_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     data = {
         "bounds": "106.57606490366962,10.710644309189911,106.83509113187337,10.906718682210693",
@@ -272,7 +272,7 @@ def create_chart(coin: str = "bitcoin") -> None:
         columns=["Timestamp", "Price"],
     )
 
-    df.index = pd.to_datetime(df["Timestamp"], unit="ms")  # type: ignore
+    df.index = pd.to_datetime(df["Timestamp"], unit="ms")
     df["date"] = df.index.date  # type: ignore
 
     analyzed = pd.DataFrame()
