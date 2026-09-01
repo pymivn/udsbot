@@ -1,11 +1,11 @@
-all: fmt mypy test
+all: fmt ty test
 
 fmt:
 	ruff format *.py
 	ruff check *.py
 
-mypy:
-	mypy --install-types --non-interactive --ignore-missing-imports *.py
+ty:
+	uvx ty check *.py
 
 test:
 	python3 -m unittest

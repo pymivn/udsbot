@@ -7,7 +7,7 @@ import hashlib
 import random
 import re
 from dataclasses import dataclass
-from typing import MutableMapping, BinaryIO, cast
+from typing import BinaryIO
 
 import requests
 import dict_lookup
@@ -63,14 +63,12 @@ def aoc21(topn: int = 10) -> str:
         logger.info("AOC: Getting newest data")
 
         # Filter out None values
-        cookies = {key: value for key, value in cookies.items() if value is not None}
-        # Cast to the expected type that requests.get() requires
-        typed_cookies: MutableMapping[str, str] = cast(
-            MutableMapping[str, str], cookies
-        )
+        clean_cookies = {
+            key: value for key, value in cookies.items() if value is not None
+        }
         r = requests.get(
             "https://adventofcode.com/2024/leaderboard/private/view/416592.json",
-            cookies=typed_cookies,
+            cookies=clean_cookies,
         )
 
         d = r.json()

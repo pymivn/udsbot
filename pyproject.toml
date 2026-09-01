@@ -8,7 +8,6 @@ dependencies = [
     "english-to-ipa",
     "lxml[html-clean]>=5.3.2",
     "matplotlib>=3.10.1",
-    "mypy>=1.15.0",
     "numpy>=2.2.4",
     "pandas>=2.2.3",
     "plotly>=6.0.1",
@@ -16,8 +15,6 @@ dependencies = [
     "pyyaml>=6.0.2",
     "requests>=2.32.3",
     "ruff>=0.9.9",
-    "types-pyyaml>=6.0.12.20250402",
-    "types-requests>=2.32.0.20250328",
     "wn>=1.1.0",
 ]
 

@@ -28,7 +28,7 @@ jobs:
       run: uv run make fmt
 
     - name: Run type checking
-      run: uv run make mypy
+      run: uv run make ty
 
     - name: Run tests
       run: uv run make test

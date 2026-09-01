@@ -18,7 +18,7 @@
 | Charting         | `pandas` + `plotly` (lazy-imported for crypto candlestick charts) |
 | Config           | `PyYAML` + `Pydantic` (for cronjob storage config validation)     |
 | Linter/Formatter | `ruff`                                                            |
-| Type Checker     | `mypy`                                                            |
+| Type Checker     | `ty` (Astral, via `uvx`)                                          |
 | Testing          | `unittest` (standard library)                                     |
 | CI               | GitHub Actions (via `uv`)                                         |
 
@@ -98,7 +98,7 @@ The project uses a **flat module structure** — all Python files live at the re
 
 - **Synchronous**: The bot uses synchronous `requests` — not async. All handlers and API calls are regular functions.
 - **Dynamic dispatch**: Adding a new command requires only adding a `dispatch_<name>` method on the `Dispatcher` class. No registration step needed.
-- **Type hints**: Used throughout with `mypy` type checking enforced in CI.
+- **Type hints**: Used throughout with `ty` type checking enforced in CI.
 - **Dataclasses**: Used for structured data (`Kanji`, `Job`, `PodcastEpisode`).
 - **Pydantic**: Used for config validation in `cronjob_config.py` (discriminated unions).
 - **Design patterns**: Strategy pattern (ABC + concrete implementations) for pluggable cron storage.
@@ -166,7 +166,7 @@ make setup-dicts
 
 # Individual targets
 make fmt          # ruff format *.py && ruff check *.py
-make mypy         # mypy --install-types --non-interactive --ignore-missing-imports *.py
+make ty           # uvx ty check *.py
 make test         # python3 -m unittest
 make audit        # uvx detect-secrets + gitleaks (optional) + uvx pip-audit + uvx semgrep
 
@@ -177,7 +177,7 @@ python bot.py
 ## CI/CD
 
 - **GitHub Actions** workflow (`python-quality-checks.yml`) runs on push/PR to `main`/`master`.
-- Steps: checkout → Python 3.12 setup → `uv sync` → `uv run make fmt` → `uv run make mypy` → `uv run make test`.
+- Steps: checkout → Python 3.12 setup → `uv sync` → `uv run make fmt` → `uv run make ty` → `uv run make test`.
 - Runs on `ubuntu-latest`.
 
 ## Environment Variables
@@ -221,7 +221,7 @@ python bot.py
 5. **Test new features**: Add tests following the `test_<module>.py` convention using `unittest`. Mock external dependencies.
 6. **Data files**: Large static datasets (like `joyo_final.json`) are stored as JSON at the repo root.
 7. **Ruff compliance**: All code must pass `ruff format` and `ruff check`.
-8. **mypy compliance**: All code must pass `mypy --ignore-missing-imports`.
+8. **ty compliance**: All code must pass `uvx ty check *.py`.
 9. **Python 3.12+**: Use modern Python features. Target `requires-python = ">=3.12"`.
 10. **Dependencies**: Add new dependencies to `pyproject.toml`. The `uds` library is sourced from git via `[tool.uv.sources]`.
 11. **Ollama dependency**: Features using local Ollama should gracefully handle connection failures.
