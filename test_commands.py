@@ -133,23 +133,15 @@ class TestDispatcherCommands(unittest.TestCase):
         )
 
     @patch("commands.send_message")
-    @patch(
-        "commands.jp_dict.search_jisho_sentences",
-        return_value=[
-            commands.jp_dict.JishoSentence(
-                japanese="飲料水 は 不足 している。",
-                english="Drinking water is in short supply.",
-            )
-        ],
-    )
+    @patch("commands.llm.gen_example", return_value="飲料水は体に良い。")
     def test_dispatch_x_with_subcmd(
-        self, mock_search: MagicMock, mock_send: MagicMock
+        self, mock_gen: MagicMock, mock_send: MagicMock
     ) -> None:
         with patch.object(self.dispatcher, "dispatch") as mock_dispatch:
             self.dispatcher.dispatch_x("/x ji 飲料", chat_id=123, from_id=456)
 
             mock_dispatch.assert_called_once_with("ji 飲料", 123, 456)
-            mock_search.assert_called_once_with("飲料", session=self.mock_session)
+            mock_gen.assert_called_once_with("飲料")
 
     @patch("commands.send_message")
     def test_dispatch_x_no_keyword_shows_usage(self, mock_send: MagicMock) -> None:
@@ -159,46 +151,35 @@ class TestDispatcherCommands(unittest.TestCase):
 
     @patch("commands.send_message")
     @patch(
-        "commands.jp_dict.search_jisho_sentences",
-        return_value=[
-            commands.jp_dict.JishoSentence(
-                japanese="車を運転するなら、酒を飲んではいけません。",
-                english="If you drive a car, you must not drink alcohol.",
-            )
-        ],
+        "commands.llm.gen_example",
+        return_value="車を運転するなら、酒を飲んではいけません。",
     )
     def test_dispatch_x_default_reply(
-        self, mock_search: MagicMock, mock_send: MagicMock
+        self, mock_gen: MagicMock, mock_send: MagicMock
     ) -> None:
         reply = "飲: drink, smoke, take\nイン, の.む\nhttps://jisho.org"
         self.dispatcher.dispatch_x("/x", chat_id=123, from_id=456, reply_text=reply)
 
-        mock_search.assert_called_once_with("飲", session=self.mock_session)
-        mock_send.assert_called_once()
-        sent_text = mock_send.call_args[1]["text"]
-        self.assertIn("Example sentences for `飲`:", sent_text)
-        self.assertIn("車を運転するなら、酒を飲んではいけません。", sent_text)
+        mock_gen.assert_called_once_with("飲")
+        mock_send.assert_called_once_with(
+            session=self.mock_session,
+            chat_id=123,
+            text="車を運転するなら、酒を飲んではいけません。",
+        )
 
     @patch("commands.send_message")
-    @patch(
-        "commands.jp_dict.search_jisho_sentences",
-        return_value=[
-            commands.jp_dict.JishoSentence(
-                japanese="飲料水 は 不足 している。",
-                english="Drinking water is in short supply.",
-            )
-        ],
-    )
+    @patch("commands.llm.gen_example", return_value="飲料水は体にいいです。")
     def test_dispatch_x_default_direct_word(
-        self, mock_search: MagicMock, mock_send: MagicMock
+        self, mock_gen: MagicMock, mock_send: MagicMock
     ) -> None:
         self.dispatcher.dispatch_x("/x 飲料", chat_id=123, from_id=456)
 
-        mock_search.assert_called_once_with("飲料", session=self.mock_session)
-        mock_send.assert_called_once()
-        sent_text = mock_send.call_args[1]["text"]
-        self.assertIn("Example sentences for `飲料`:", sent_text)
-        self.assertIn("飲料水 は 不足 している。", sent_text)
+        mock_gen.assert_called_once_with("飲料")
+        mock_send.assert_called_once_with(
+            session=self.mock_session,
+            chat_id=123,
+            text="飲料水は体にいいです。",
+        )
 
     @patch("commands.send_message")
     @patch("commands.kanji_service.get_examples_for_text")

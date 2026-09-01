@@ -792,27 +792,17 @@ class Dispatcher:
             send_message(
                 session=self.session,
                 chat_id=chat_id,
-                text="Usage: /x <word>, /x ai <word>, or reply to a message with /x",
+                text="Usage: /x <word> or reply to a message with /x",
             )
             return
 
-        use_ai = parsed.sub_cmd == "ai"
-
-        if parsed.sub_cmd and not use_ai:
+        # Dispatch sub-command first (e.g., /x ji 飲料 runs /ji then shows AI example)
+        if parsed.sub_cmd and parsed.sub_cmd != "ai":
             self.dispatch(f"{parsed.sub_cmd} {parsed.keyword}", chat_id, from_id)
 
-        if use_ai:
-            msg = llm.gen_example(parsed.keyword)
-        else:
-            sentences = jp_dict.search_jisho_sentences(
-                parsed.keyword, session=self.session
-            )
-            msg = jp_dict.format_jisho_sentences(parsed.keyword, sentences)
-
+        msg = llm.gen_example(parsed.keyword)
         send_message(session=self.session, chat_id=chat_id, text=msg[:300])
-        logger.info(
-            "x %s for keyword %s", "ai" if use_ai else "tatoeba", parsed.keyword
-        )
+        logger.info("x ai for keyword %s", parsed.keyword)
 
     def dispatch(
         self,
