@@ -80,7 +80,7 @@ class TestLookupWord(unittest.TestCase):
         self.assertIn("run", result["url"])
         self.assertTrue(
             result["url"].startswith(
-                "https://dictionary.cambridge.org/dictionary/english/"
+                "https://www.merriam-webster.com/dictionary/"
             )
         )
 

@@ -98,7 +98,7 @@ def lookup_word(word: str) -> LookupResult:
     If the word is not found, ``means`` will be an empty list.
     IPA is provided by eng-to-ipa (offline, CMU-based).
     """
-    url = f"https://dictionary.cambridge.org/dictionary/english/{quote(word)}"
+    url = f"https://www.merriam-webster.com/dictionary/{quote(word)}"
     ipa = _get_ipa(word)
     means: list[str] = []
 
