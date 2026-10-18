@@ -420,9 +420,18 @@ class Dispatcher:
             send_message(
                 session=self.session,
                 chat_id=chat_id,
-                text=f"Cambridge result for `{keyword}`\nIPA: {ipa}\n" + msg,
+                text=f"Define `{keyword}`\nIPA: {ipa}\n" + msg,
             )
             logger.info("UDS: served cam keyword %s", keyword)
+
+    def dispatch_def(
+        self,
+        text: str,
+        chat_id: int,
+        from_id: int,
+        reply_text: str | None = None,
+    ) -> None:
+        self.dispatch_cam(text, chat_id, from_id, reply_text)
 
     def dispatch_fr(
         self,

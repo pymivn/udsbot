@@ -79,9 +79,7 @@ class TestLookupWord(unittest.TestCase):
 
         self.assertIn("run", result["url"])
         self.assertTrue(
-            result["url"].startswith(
-                "https://www.merriam-webster.com/dictionary/"
-            )
+            result["url"].startswith("https://www.merriam-webster.com/dictionary/")
         )
 
     @patch("dict_lookup._get_ipa", return_value="rən")

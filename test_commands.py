@@ -32,7 +32,7 @@ class TestKeywordExtraction(unittest.TestCase):
 
     def test_extract_keyword_from_cambridge_result(self) -> None:
         cam_msg = (
-            "Cambridge result for `run`\n"
+            "Define `run`\n"
             "IPA: rən\n"
             "1. (v) move fast\n"
             "https://dictionary.cambridge.org/dictionary/english/run"
@@ -302,12 +302,12 @@ class TestDispatcherCommands(unittest.TestCase):
             "ipa": "rən",
             "means": ["(v) to run"],
         }
-        reply = "Cambridge result for `run`\nIPA: rən\n..."
+        reply = "Define `run`\nIPA: rən\n..."
         self.dispatcher.dispatch_cam("/cam", chat_id=123, from_id=456, reply_text=reply)
 
         mock_lookup.assert_called_once_with("run")
         mock_send.assert_called_once()
-        self.assertIn("Cambridge result for `run`", mock_send.call_args[1]["text"])
+        self.assertIn("Define `run`", mock_send.call_args[1]["text"])
 
 
 if __name__ == "__main__":
